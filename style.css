@@ -1,0 +1,107 @@
+	a.header { 
+		font-size: 1.7em; 
+		text-align: center;
+		text-decoration:none;
+		color:#333;
+		text-shadow: 2px 2px 2px #CCC;
+	}
+	h1 {
+		margin-left:auto;
+		margin-right:auto;
+	}
+	a.header:hover {
+		color:#B00;
+		text-decoration:none;
+	}
+	.container {
+		background:#FFFFFF;
+		width:80%;
+		text-align:left;
+		font-size:1.7em;
+		padding:0px;
+		margin:0px;
+		border-top:6px solid #333;
+		border-bottom:0px solid #333;
+		margin-left:auto;
+		margin-right:auto;
+		/* Box shadowing that provides a nice page shadow; experimental shiny stuff. */
+		box-shadow: 0 0 4em #ccc;
+		-webkit-box-shadow: 0 0 4em #ccc;
+		-moz-box-shadow: 0 0 4em #ccc;
+	}
+	.textContainer {
+		width:90%;
+		margin-left:auto;
+		margin-right:auto;
+	}
+	body {
+		color:#111;
+		margin: 0px;
+		padding: 0px;
+		background: #ebebeb url(/images/bg.png) repeat;
+		text-align: center; /* For IE centering. */
+		font-family: Georgia, "DejaVu Serif", Times, "Times New Roman", serif;
+		font-size: 62.5%; 
+		line-height: 1.5; 
+	}
+	h2 {
+		color:#B00;
+	}
+	.emph {
+		color:#B00;
+	}
+	li {
+		padding: 3px;
+	}
+	.topLinks {
+		font-size:1.5em;
+		text-align:left;
+		padding-bottom:2px;
+		background: #333;
+		padding-left: 40px;
+	}
+	a {
+		text-decoration: none;
+		color:#00009C;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+	.linkSpan {
+		padding:1px;
+		margin:8px;
+		color:#999;
+		padding-left: 30px;
+		text-shadow: 2px 2px 2px #222;
+		font-size: 0.8em;
+		letter-spacing: 0.045em;
+	}
+	.linkSpan:hover {
+		color: #ff8000;
+		background-color: #333;
+		text-decoration:none;
+	}
+	.homeContainer {
+		float:left;
+		width:50%; 
+		margin:1%; 
+		padding:1%; 
+	}
+	.desc {
+		padding-left:4%;
+		padding-top:1%;
+		padding-bottom:2%;
+	}
+	.footer {
+		padding-top:1%;
+		text-align:center;
+	}
+	.bib {
+		margin: 4px;
+		padding: 10px;
+		width:auto;
+		font-family: monospace;
+		border: 2px dashed #00009C;
+		overflow: auto;
+		white-space: pre-wrap; /* css-3 */
+ 	}
