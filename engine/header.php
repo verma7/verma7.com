@@ -1,17 +1,18 @@
 <?php
 
-	function getTopBar($current) {
-		$a[$current] = ''; // style="color: #FF8000;" ';
-		$retString = '
+    function getTopBar($current)
+    {
+        $a[$current] = ''; // style="color: #FF8000;" ';
+        $retString = '
 	<div class="topLinks">
 	<span> <a class="linkSpan" '.$a["home"].' href=".">HOME</a></span>
 	<span> <a class="linkSpan" '.$a["pub"].' href="pub.html">PUBLICATIONS</a></span>
 	<span> <a class="linkSpan" '.$a["prof"].' href="prof.html">WORK EXPERIENCE</a></span>
 	<span> <a class="linkSpan" '.$a["travel"].' href="travel.html">TRAVEL</a></span>
 	</div>';
-		
-		return $retString;	
-	}
+
+        return $retString;
+    }
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -57,7 +58,7 @@
       }
       google.maps.event.addDomListener(window, 'load', initialize);
     </script>
-	
+
 		<!-- Google Tracking -->
 		<script type="text/javascript">
 
@@ -78,4 +79,3 @@
 	<body>
 	<div class="container">
 	<h1 align="center"> <a href=".." class="header"> Abhishek Verma </a> </h1>
-	

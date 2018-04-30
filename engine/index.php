@@ -1,5 +1,5 @@
-<?php	include_once("header.php"); 
-	echo getTopBar("home");
+<?php	include_once("header.php");
+    echo getTopBar("home");
 ?>
 
 	<div class="textContainer">
@@ -11,15 +11,15 @@ I worked as a Software Engineer at <a href="http://lmgtfy.com/?q=Google">Google<
 <br/>
 <br/>
 
-I graduated from the <a href="http://cs.illinois.edu" target="_blank">Department of Computer Science</a> 
+I graduated from the <a href="http://cs.illinois.edu" target="_blank">Department of Computer Science</a>
 at the <a href="http://illinois.edu" target="_blank">University of Illinois at Urbana-Champaign</a> (UIUC) with an <a href="https://ideals.illinois.edu/handle/2142/16856">MS</a> (2010) and <a href="https://ideals.illinois.edu/handle/2142/42276">PhD</a> (2012) in Computer Science.
-I was a part of the <a href="http://srg.cs.illinois.edu" target="_blank">Systems Research Group</a> and 
+I was a part of the <a href="http://srg.cs.illinois.edu" target="_blank">Systems Research Group</a> and
 advised by <a href="http://cs.illinois.edu/people/faculty/roy-campbell" target="_blank">Prof. Roy H. Campbell</a>. My research was focussed on performance modelling of data-intensive systems.
 <br/>
 <br/>
 
-I completed B.Tech in Computer Science at 
-<a href="http://nitt.edu" target="_blank">National Institute of Technology Tiruchirappalli</a> in 2008. 
+I completed B.Tech in Computer Science at
+<a href="http://nitt.edu" target="_blank">National Institute of Technology Tiruchirappalli</a> in 2008.
 <br/>
 <br/>
 

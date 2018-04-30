@@ -1,2 +1,2 @@
 # verma7.com
-Home page website
+Source code of http://verma7.com.

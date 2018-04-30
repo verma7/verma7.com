@@ -1,4 +1,4 @@
-<?php	include_once("header.php"); 
+<?php	include_once("header.php");
 	echo getTopBar("pub");
 ?>
 	<div class="textContainer">

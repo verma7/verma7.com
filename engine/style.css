@@ -1,5 +1,5 @@
-	a.header { 
-		font-size: 1.7em; 
+	a.header {
+		font-size: 1.7em;
 		text-align: center;
 		text-decoration:none;
 		color:#333;
@@ -41,8 +41,8 @@
 		background: #ebebeb url(/images/bg.png) repeat;
 		text-align: center; /* For IE centering. */
 		font-family: Georgia, "DejaVu Serif", Times, "Times New Roman", serif;
-		font-size: 62.5%; 
-		line-height: 1.5; 
+		font-size: 62.5%;
+		line-height: 1.5;
 	}
 	h2 {
 		color:#B00;
@@ -83,9 +83,9 @@
 	}
 	.homeContainer {
 		float:left;
-		width:50%; 
-		margin:1%; 
-		padding:1%; 
+		width:50%;
+		margin:1%;
+		padding:1%;
 	}
 	.desc {
 		padding-left:4%;

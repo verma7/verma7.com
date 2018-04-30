@@ -27,14 +27,14 @@ Interned in the cluster infrastructure team with John Wilkes. Worked on the sche
 <h2 style="display:inline"> Hewlett-Packard Labs, Palo Alto</h2>
 <h3 style="display:inline"> (May 2010 &#8211; May 2012)</h3>
 <div class="desc">
-Interned in the Storage and Information Managements Platforms Lab with Lucy Cherkasova and researched on 
+Interned in the Storage and Information Managements Platforms Lab with Lucy Cherkasova and researched on
 <a href="http://labs.google.com/papers/mapreduce.html" target="_blank">MapReduce</a> performance modeling. By profiling MapReduce jobs, we built a compact performance model representing their execution. It is used to optimize the overall infrastructure utility and achieve specified service level objectives.
 </div>
 
 <h2 style="display:inline">Yahoo! Champaign</h2>
 <h3 style="display:inline"> (June 2009 &#8211; August 2009)</h3>
 <div class="desc">
-     Contributed to the design and development of Direct Object Repository Architecture (DORA), which is a high performance, horizontally scalable and reliable object based back-end storage. Specifically, I worked on distributing the meta-data for fault tolerance and higher availability, wrote a FUSE (Filesystem in User Space)  implementation and a connector for the Distributed Filesystem of <a href="http://hadoop.apache.org" target="_blank">Hadoop</a>, the open source MapReduce implementation. 
+     Contributed to the design and development of Direct Object Repository Architecture (DORA), which is a high performance, horizontally scalable and reliable object based back-end storage. Specifically, I worked on distributing the meta-data for fault tolerance and higher availability, wrote a FUSE (Filesystem in User Space)  implementation and a connector for the Distributed Filesystem of <a href="http://hadoop.apache.org" target="_blank">Hadoop</a>, the open source MapReduce implementation.
 </div>
 
 <h2 style="display:inline"> Google, Bangalore</h2>
