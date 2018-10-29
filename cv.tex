@@ -1,0 +1,187 @@
+%% start of file `template.tex'.
+%% Copyright 2006-2010 Xavier Danaux (xdanaux@gmail.com).
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License version 1.3c,
+% available at http://www.latex-project.org/lppl/.
+
+
+\documentclass[11pt,a4paper]{moderncv}
+
+% moderncv themes
+\moderncvtheme[blue]{casual}                 % optional argument are 'blue' (default), 'orange', 'red', 'green', 'grey' and 'roman' (for roman fonts, instead of sans serif fonts)
+%\moderncvtheme[green]{classic}                % idem
+
+% character encoding
+\usepackage[utf8]{inputenc}                   % replace by the encoding you are using
+\usepackage{url}
+
+% adjust the page margins
+\usepackage[scale=0.8]{geometry}
+%\setlength{\hintscolumnwidth}{3cm}						% if you want to change the width of the column with the dates
+%\AtBeginDocument{\setlength{\maketitlenamewidth}{6cm}}  % only for the classic theme, if you want to change the width of your name placeholder (to leave more space for your address details
+%\AtBeginDocument{\recomputelengths}                     % required when changes are made to page layout lengths
+
+% personal data
+\firstname{Abhishek}
+\familyname{Verma}
+\title{CV}               % optional, remove the line if not wanted
+%\address{}{postcode city}    % optional, remove the line if not wanted
+\mobile{+1 217 819 6524}                    % optional, remove the line if not wanted
+%\phone{phone (optional)}                      % optional, remove the line if not wanted
+%\fax{fax (optional)}                          % optional, remove the line if not wanted
+\email{vermaabhishekp@gmail.com}                      % optional, remove the line if not wanted
+%\homepage{verma7.com}                % optional, remove the line if not wanted
+%\extrainfo{additional information (optional)} % optional, remove the line if not wanted
+%\photo[64pt]{picture}                         % '64pt' is the height the picture must be resized to and 'picture' is the name of the picture file; optional, remove the line if not wanted
+%\quote{Some quote (optional)}                 % optional, remove the line if not wanted
+
+% to show numerical labels in the bibliography; only useful if you make citations in your resume
+\makeatletter
+\renewcommand*{\bibliographyitemlabel}{\@biblabel{\arabic{enumiv}}}
+\makeatother
+
+% bibliography with mutiple entries
+%\usepackage{multibib}
+%\newcites{book,misc}{{Books},{Others}}
+
+%\nopagenumbers{}                             % uncomment to suppress automatic page numbering for CVs longer than one page
+%----------------------------------------------------------------------------------
+%            content
+%----------------------------------------------------------------------------------
+\begin{document}
+\maketitle
+
+\section{Education}
+\cventry{2008--2012}{Ph.D}{\href{http://cs.illinois.edu}{University of Illinois at Urbana-Champaign}} {}{}{}
+\cventry{2008--2010}{M.S}{\href{http://cs.illinois.edu}{University of Illinois at Urbana-Champaign}} {}{}{}
+\cventry{2004--2008}{B. Tech}{\href{http://www.nitt.edu}{National Institute of Technology Tiruchirappalli}} {}{}{}
+
+\section{\href{https://ideals.illinois.edu/handle/2142/42276}{Doctoral thesis}}
+\cvline{Title}{\emph{Performance Modeling Framework for Service Level Objective-driven MapReduce Environments}}
+
+\section{\href{http://hdl.handle.net/2142/16856}{Master thesis}}
+\cvline{Title}{\emph{Scaling simple, compact and extended compact genetic algorithms using MapReduce}}
+\cvline{Advisor}{\href{http://cs.illinois.edu/people/faculty/roy-campbell}{Prof. Roy H. Campbell}}
+%\cvline{description}{\small Short thesis abstract}
+
+
+\section{Work Experience}
+\cventry{July 2017--Present}{Senior Software Engineer}{Google}{San Francisco}{}{Working on
+applying machine learning to derive insights into resource and infrastructure optimization.}
+
+\cventry{Nov 2015--July 2017}{Senior Software Engineer}{Uber}{San Francisco}{}{ Started a new team running Cassandra on Mesos at Uber. Contributed to the open source \href{http://github.com/mesosphere/dcos-cassandra-service}{Mesos framework}, Apache Cassandra and worked on running it at scale at Uber. Gave talks describing our work at \href{https://www.youtube.com/watch?v=U2jFLx8NNro}{MesosCon} and \href{https://www.youtube.com/watch?v=4Ap-1VT2ChU}{Cassandra Summit}.}
+
+\cventry{Aug 2015--Nov 2015}{Research Consultant}{Tata Consultancy Services}{Mumbai}{}{ Worked on the performance modeling of Hive and HBase in heterogeneous environments.}
+
+\cventry{March 2015--July 2015}{Fellow}{Teach For India}{Pune}{}{ Learnt about lesson planning and pedagogy during training. Taught 7th to 10th grades as a part of the Teach for India fellowship.}
+
+\cventry{Feb 2013--Nov 2014}{Software Engineer}{Google}{Mountain View}{}{Worked on designing, implementing and analyzing the cluster scheduling infrastructure at Google as part of Borg/Omega infrastructure team. Published a research paper summarizing the Borg system architecture and features, important design decisions and a quantitative analysis of some of its policy decisions.}
+
+\cventry{Aug 2008--Aug 2012}{Research Assistant}{University of Illinois at Urbana-Champaign}{}{}
+{Worked on performance modeling of distributed systems as Research Assistant with \href{http://cs.illinois.edu/people/faculty/roy-campbell}{Prof. Roy H. Campbell}.}
+
+\cventry{Summer 2012}{Software Engineering Intern}{Google}{Mountain View}{}{Interned in the Cluster management team with John Wilkes. Worked on the scheduling of long running service jobs taking into account the performance and availability requirements.}
+
+\cventry{May 2010--May 2012}{Research Intern}{Hewlett-Packard Labs}{Palo Alto}{}{Interned in the Storage and Information Managements Platforms Lab with Ludmila Cherkasova and researched on MapReduce performance modeling. By profiling MapReduce jobs, we built a compact performance model representing their execution. It is used to optimize the overall infrastructure utility and achieve specified service level objectives.}
+
+\cventry{Summer 2009}{Software Intern}{Yahoo!}{Champaign}{}{Contributed to the design and development of Direct Object Repository Architecture (DORA), which is a high performance, horizontally scalable and reliable object based back-end storage. Worked on distributing the meta-data for fault tolerance and higher availability, wrote a FUSE (Filesystem in User Space)  implementation and a Distributed Filesystem for Hadoop, the open source MapReduce implementation.}
+
+\cventry{Summer 2007}{Software Intern}{Google}{Bangalore}{}{Worked on Orkut, an online social networking website. It involved understanding technologies like Map Reduce and the distributed file systems, collecting data for research on Orkut and developing new features.}
+
+\section{Conference Publications}
+
+\cvline{\textbf{\href{http://research.google.com/pubs/pub43438.html}{Eurosys 2015}}} {\textbf{Abhishek Verma}, Luis Pedrosa, Madhukar R. Korupolu, David Oppenheimer, Eric Tune, John Wilkes,  \textit{``Large-scale cluster management at Google with Borg''.}}
+
+
+\cvline{\textbf{\href{http://www.cluster2014.org/index.php/scientific-programme/final-program/tuesday-23-sept}{Cluster 2014}}} {\textbf{Abhishek Verma}, Madhukar Korupolu and John Wilkes, \quad \textbf{Nominated for Best paper award}, \textit{``Evaluating job packing in warehouse-scale computing''.}}
+
+\cvline{\textbf{\href{}{Performance 2014}}} {\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell,  \textit{``Profiling and evaluating hardware choices for MapReduce environments: An application-aware approach''.}}
+
+\cvline{\textbf{\href{}{ICAC 2012}}} {Zhuoyao Zhang, Ludmila Cherkasova, \textbf{Abhishek Verma},  and Boon Loo, \quad \textbf{Best student paper award}, \textit{``Performance Modeling and Optimization of Deadline-Driven Pig Programs''.}}
+
+\cvline{\textbf{\href{http://mascots.cs.vt.edu/mascots2012/}{MASCOTS 2012}}} {\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell,  \textit{``Two Sides of a Coin: Optimizing the Schedule of MapReduce Jobs to Minimize Their Makespan and Improve Cluster Performance''.}}
+
+\cvline{\textbf{\href{http://www.ieee-noms.org/}{NOMS 2012}}} {\textbf{Abhishek Verma}, Ludmila Cherkasova, Vijay S. Kumar and Roy H. Campbell,  \textit{``Deadline-based Workload Management for MapReduce Environments: Pieces of the Performance Puzzle''.}}
+
+\cvline{\textbf{\href{http://2011.middleware-conference.org/accepted-papers}{Middleware 2011}}} {\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell, \textit{``Resource Provisioning Framework for MapReduce Jobs with Performance Goals''.}}
+
+\cvline{\textbf{\href{http://dx.doi.org/10.1109/CLUSTER.2011.36}{Cluster 2011}}}{\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell, \textit{``Play it again, SimMR!''}}
+
+\cvline{\textbf{\href{http://ladisworkshop.org/node/10}{LADIS 2011}}}{\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell, \textit{``Performance-driven Resource Provisioning of MapReduce Jobs in the Cloud''}.}
+
+\cvline{\textbf{\href{http://portal.acm.org/citation.cfm?doid=1998582.1998637}{ICAC 2011}}}{\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell, \textit{``ARIA: Automatic Resource Inference and Allocation for MapReduce Environments"}.}
+
+
+\cvline{\textbf{\href{http://dx.doi.org/10.1109/CLUSTER.2010.29}{Cluster 2010}}}{\textbf{Abhishek Verma}, Nicolas Zea, Brian Cho, Indranil Gupta and Roy H. Campbell, \href{http://hdl.handle.net/2142/14819}{\textit{``Breaking the MapReduce Stage Barrier''}}.}
+
+\cvline{\textbf{\href{http://dx.doi.org/10.1109/CEC.2010.5586468}{CEC 2010}}}{\textbf{Abhishek Verma}, Xavier Llor\`a, Shivaram Venkataram, David E. Goldberg and Roy H. Campbell, \textit{``Scaling eCGA Model Building via Data-Intensive Computing"}.}
+
+\cvline{\textbf{\href{http://dx.doi.org/10.1109/ISDA.2009.181}{ISDA 2009}}}{\textbf{Abhishek Verma}, Xavier Llor\`a, David E. Goldberg and Roy H. Campbell, \href{http://dx.doi.org/10.1109/ISDA.2009.181}{\textit{``Scaling Genetic Algorithms using MapReduce"}}.}
+
+\cvline{\textbf{\href{http://dx.doi.org/10.1109/CLUSTR.2009.5289201}{Cluster 2009}}}{Reza Farivar, \textbf{Abhishek Verma}, Ellick Chan and Roy H. Campbell. {\textit{``MITHRA: Multiple data Independent Tasks on a Heterogeneous Resource Architecture"}.}}
+
+%\vspace{-2mm}
+\section{Book Chapters}
+\cvline{Springer Science} {\textbf{Abhishek Verma}, Shivaram Venkataraman, Matthew Caesar, and Roy H. Campell, \textit{``Scalable Storage for Data-intensive Computing''}. Handbook of Data-intensive Computing, Springer Science, 2011.}
+
+\cvline{\href{http://www.springerlink.com/content/q391856472211105}{Springer \\ Series of Computational Intelligence}}{Xavier Llor\`a, \textbf{Abhishek Verma}, Roy H. Campbell, and David E. Goldberg, \href{http://www.springerlink.com/content/q391856472211105}{\textit{``When Huge is Routine: Scaling Genetic Algorithms and Estimation of Distribution Algorithms via Data-Intensive Computing"}}. Parallel and Distributed Computational Intelligence, SCI 269, pp. 11-41, Springer Berlin/Heidelberg, 2010.}
+
+\section{Journal Publications}
+
+\cvline{\href{}{TAAS 2013}} {Zhuoyao Zhang, Ludmila Cherkasova, \textbf{Abhishek Verma},  and Boon Loo, \quad \textbf{Best student paper award}, \textit{``Performance Modeling and Optimization of Deadline-Driven Pig Programs''.}}
+
+\cvline{TDSC 2013}{\textbf{Abhishek Verma}, Ludmila Cherkasova and Roy H. Campbell,  \textit{``Orchestrating an Ensemble of MapReduce Jobs for Minimizing Their Makespan''}. Transactions on Dependable and Secure Computing, 2013.}
+
+\cvline{Cluster Computing}{\textbf{Abhishek Verma}, Brian Cho, Nicolas Zea, Indranil Gupta and Roy Campbell, \textit{``Breaking the MapReduce Stage Barrier''}. Springer Journal of Cluster Computing, 2011.}
+
+\section{Workshop Publications}
+\cvline{{\href{https://sites.google.com/site/ccopt2012/}{CCOPT 2012}}}{Zhuoyao Zhang, Ludmila Cherkasova, \textbf{Abhishek Verma} and Boon Loo, \textit{``Optimizing Completion Time and Resource Provisioning of Pig Programs''}.}
+\cvline{{\href{http://www.wikibench.eu/CloudCP/}{CloudCP 2012}}}{Zhuoyao Zhang, Ludmila Cherkasova, \textbf{Abhishek Verma} and Boon Loo, \textit{``Meeting Service Level Objectives of Pig Programs''}.}
+
+\section{Patents}
+\cvline{2013}{Ludmila Cherkasova, \textbf{Abhishek Verma}, ``\textit{Determining an allocation of resources for a MapReduce job''}}
+\cvline{2012}{Ludmila Cherkasova, \textbf{Abhishek Verma}, ``\textit{Estimating performance parameter of a job having map and reduce tasks after a failure''}}
+\cvline{2012}{Ludmila Cherkasova, \textbf{Abhishek Verma}, ``\textit{Varying a characteristic of job profile relating to map and reduce tasks according to data size''}}
+\cvline{2012}{\textbf{Abhishek Verma}, Ludmila Cherkasova, ``\textit{Scheduling map and reduce tasks for jobs for execution according to performance goals''}}
+\cvline{2012}{\textbf{Abhishek Verma}, Ludmila Cherkasova, ``\textit{Estimating a performance characteristic of a job using a performance model''}}
+
+\section{Honors and Awards}
+\cvline{2014}{Top engineering accomplishment award in Technical Infrastructure at Google in 2014Q1.}
+\cvline{2012}{Best student paper award at ICAC 2012}
+\cvline{2009}{Most valuable intern award at Yahoo!}
+\cvline{2008}{First prize (\$10,000) for building a web app SVid for searching and sharing videos for \href{http://www.topcoder.com/truveo}{Topcoder's Truveo Developer challenge}}
+\cvline{2008}{Institute Gold medal for the highest GPA in Computer Science, NIT Tiruchirappalli}
+\cvline{2007}{Silver medal from Alumni association for outstanding student in Computer Science, NIT Tiruchirappalli}
+\cvline{2007}{\href{http://www.iitk.ac.in/surge/abhishek.htm}{Summer Undergraduate Research Grant for Excellence (SURGE) Award} in Indian Institute of Technology Kanpur}
+\cvline{2004}{Academic excellence award for being first in the university in freshman year among 600 students with a GPA of 9.85/10}
+
+\section{Professional Activities}
+\cvline{2011-2012}{Member of the UIUC graduate student council}
+\cvline{2012}{Student member of the UIUC PhD admissions review committee}
+\cvline{2011--2013}{Member of the Association of Computing Machinery (ACM)}
+\cvline{2011--2013}{Member of the Institute of Electrical and Electronics Engineering (IEEE)}
+\cvline{2010--Present}{External Reviewer for IMC 2010, Middleware 2011, ICDCS 2012, and HotNets 2012.}
+
+\section{Posters}
+\cvline{SOSP 2011}{Three Pieces of the MapReduce Workload Management Puzzle}
+\cvline{Hadoop Summit 2011}{ARIA: Automatic Resource Inference and Allocation for MapReduce Environments}
+
+\section{Research Interests}
+\cvline{Systems}{\small Distributed Systems, Cloud Computing, Operating Systems, Networks}
+
+\section{Relevant Courses}
+\cvline{Systems}{Distributed Systems, Distributed Algorithms, Operating Systems, Internetworking}
+\cvline{Other}{Algorithms, Computer Architecture, Genetic Algorithms, Statistics \& Probability, Digital system design, Finite Automata, Data Mining, Fuzzy Logic}
+\section{Computer skills}
+\cvline{Languages}{Java, C++, C, Shell Script, Python, JavaScript, Verilog, VHDL, PHP, SQL, \LaTeX}
+\cvline{OS}{Linux (Ubuntu, Fedora, Redhat, Suse), Solaris, Windows}
+\cvline{Software}{MS Office, Adobe Photoshop, AutoCAD, Matlab, Quartus}
+
+\section{Contact}
+\cvline{Email}{\href{mailto:vermaabhishekp@gmail.com}{vermaabhishekp@gmail.com}}
+\cvline{Phone}{+1 217 819 6524}
+\cvline{Address}{501 Delancey Street, Apt \#315, San Francisco, 94107.}
+
+
+\end{document}
