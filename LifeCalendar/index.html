@@ -63,93 +63,127 @@
     </style>
   </head>
   <body>
+    <div style="text-align: center"><h1>Life Calendar of Abhishek Verma</h1> based on <a href="https://waitbutwhy.com/2014/05/life-weeks.html">Wait But Why</a>.</div><br/>
+
     <!--Add buttons to initiate auth sequence and sign out-->
-    <div class="button"><a href="#authorize" id="authorize-button" style="display: none;">Authorize</a></div>
-    <div class="button"><a href="#signout" class="button" id="signout-button" style="display: none;">Sign Out</a></div>
-    <a href="https://calendar.google.com/calendar/r/eventedit" target="_blank">Create Event</a>
+    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
 
     <div id="life-calendar" width="100%"></div>
 
-    <script type="text/javascript">
-      // Client ID and API key from the Developer Console
-      var CLIENT_ID = '15332603275-v9ro32853i95oj4nlgfhobj7nsqu4fe9.apps.googleusercontent.com';
-      var API_KEY = 'AIzaSyB3Zl7JqBa9Er-z31i2H8TfFHW6PftfmFk';
+    <pre id="content" style="white-space: pre-wrap;"></pre>
 
-      // Array of API discovery doc URLs for APIs used by the quickstart
-      var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
+    <script type="text/javascript">
+      /* exported gapiLoaded */
+      /* exported gisLoaded */
+      /* exported handleAuthClick */
+      /* exported handleSignoutClick */
+
+      // TODO(developer): Set to client ID and API key from the Developer Console
+      const CLIENT_ID = '15332603275-p9pm84ja645lmcek1qfb4ftq8g4t053e.apps.googleusercontent.com';
+      const API_KEY = 'AIzaSyB3Zl7JqBa9Er-z31i2H8TfFHW6PftfmFk';
+
+      // Discovery doc URL for APIs used by the quickstart
+      const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
-      var SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+      const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
-      var authorizeButton = document.getElementById('authorize-button');
-      var signoutButton = document.getElementById('signout-button');
+      let tokenClient;
+      let gapiInited = false;
+      let gisInited = false;
+
+      document.getElementById('authorize_button').style.visibility = 'hidden';
+      document.getElementById('signout_button').style.visibility = 'hidden';
 
       /**
-       *  On load, called to load the auth2 library and API client library.
+       * Callback after api.js is loaded.
        */
-      function handleClientLoad() {
-        gapi.load('client:auth2', initClient);
+      function gapiLoaded() {
+        gapi.load('client', initializeGapiClient);
       }
 
       /**
-       *  Initializes the API client library and sets up sign-in state
-       *  listeners.
+       * Callback after the API client is loaded. Loads the
+       * discovery doc to initialize the API.
        */
-      function initClient() {
-        gapi.client.init({
+      async function initializeGapiClient() {
+        await gapi.client.init({
           apiKey: API_KEY,
-          clientId: CLIENT_ID,
-          discoveryDocs: DISCOVERY_DOCS,
-          scope: SCOPES
-        }).then(function () {
-          // Listen for sign-in state changes.
-          gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-
-          // Handle the initial sign-in state.
-          updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-          authorizeButton.onclick = handleAuthClick;
-          signoutButton.onclick = handleSignoutClick;
+          discoveryDocs: [DISCOVERY_DOC],
         });
+        gapiInited = true;
+        maybeEnableButtons();
       }
 
       /**
-       *  Called when the signed in status changes, to update the UI
-       *  appropriately. After a sign-in, the API is called.
+       * Callback after Google Identity Services are loaded.
        */
-      function updateSigninStatus(isSignedIn) {
-        if (isSignedIn) {
-          authorizeButton.style.display = 'none';
-          signoutButton.style.display = 'block';
-          listColors();
-          listAllEvents();
-          createTable();
-        } else {
-          authorizeButton.style.display = 'block';
-          signoutButton.style.display = 'none';
+      function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: '', // defined later
+        });
+        gisInited = true;
+        maybeEnableButtons();
+      }
+
+      /**
+       * Enables user interaction after all libraries are loaded.
+       */
+      function maybeEnableButtons() {
+        if (gapiInited && gisInited) {
+          document.getElementById('authorize_button').style.visibility = 'visible';
         }
       }
 
       /**
        *  Sign in the user upon button click.
        */
-      function handleAuthClick(event) {
-        gapi.auth2.getAuthInstance().signIn();
+      function handleAuthClick() {
+        tokenClient.callback = async (resp) => {
+          if (resp.error !== undefined) {
+            throw (resp);
+          }
+          document.getElementById('signout_button').style.visibility = 'visible';
+          document.getElementById('authorize_button').innerText = 'Refresh';
+          
+          listColors();
+          listAllEvents();
+          createTable();
+        };
+
+        if (gapi.client.getToken() === null) {
+          // Prompt the user to select a Google Account and ask for consent to share their data
+          // when establishing a new session.
+          tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+          // Skip display of account chooser and consent dialog for an existing session.
+          tokenClient.requestAccessToken({prompt: ''});
+        }
       }
 
       /**
        *  Sign out the user upon button click.
        */
-      function handleSignoutClick(event) {
-        gapi.auth2.getAuthInstance().signOut();
+      function handleSignoutClick() {
+        const token = gapi.client.getToken();
+        if (token !== null) {
+          google.accounts.oauth2.revoke(token.access_token);
+          gapi.client.setToken('');
+          document.getElementById('content').innerText = '';
+          document.getElementById('authorize_button').innerText = 'Authorize';
+          document.getElementById('signout_button').style.visibility = 'hidden';
+        }
       }
-
       var EVENT_COLORS;
 
       function listColors() {
         gapi.client.calendar.colors.get().then(function(response) {
           EVENT_COLORS = response.result.event;
-          console.log(response.result.event);
+//          console.log(response.result.event);
         });
       }
 
@@ -160,16 +194,17 @@
        */
       function listAllEvents() {
         gapi.client.calendar.events.list({
-          'calendarId': 'primary',
+          'calendarId': '867a3cdf69f198f7aba9f3737ba46f72f9cd6f8624948bca0983fbdf3a0c533d@group.calendar.google.com',
           'showDeleted': false,
           'singleEvents': true,
-          'maxResults': 100000,
+          'maxResults': 1000000,
           'orderBy': 'startTime'
         }).then(function(response) {
           var events = response.result.items;
           if (events.length > 0) {
             for (i = 0; i < events.length; i++) {
               var event = events[i];
+              console.log("Event: ", event)
               processEvent(event)
             }
           } else {
@@ -194,7 +229,7 @@
         var end = Date.parse(event.end.dateTime)
         for (week = getWeek(start); week <= getWeek(end); week++) {
           // Change the colors only for events lasting >= 3 days.
-          if (end - start > 3 * MILLI_SECONDS_PER_DAY) {
+          if (end - start > MILLI_SECONDS_PER_DAY) {
             var bgcolor = event.colorId ? EVENT_COLORS[event.colorId].background : "blue";
             // var color = "black"; //white";
             document.getElementById("week_" + week).style.backgroundColor = bgcolor;
@@ -218,7 +253,6 @@
         var END_YEAR = BASE_YEAR + LIFE_EXPECTANCY
 
         var html = '<table border=0 align="center" width="100%">';
-        html += '<tr><th id="header" colspan=' + (LIFE_EXPECTANCY + 2) + '>Life Calendar</th></tr>'
         html += '<tr><th class="rotate"><div><span>Year</span></div></th>';
         for (year = BASE_YEAR; year <= END_YEAR; year++) {
           html += '<th class="rotate"><div><span>' + year + '</span></div></th>'
@@ -247,12 +281,9 @@
           }
         }
       }
-    </script>
 
-    <script async defer src="https://apis.google.com/js/api.js"
-      onload="this.onload=function(){};handleClientLoad()"
-      onreadystatechange="if (this.readyState === 'complete') this.onload()">
     </script>
-    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   </body>
 </html>
