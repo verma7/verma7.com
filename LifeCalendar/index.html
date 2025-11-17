@@ -183,7 +183,6 @@
       function listColors() {
         gapi.client.calendar.colors.get().then(function(response) {
           EVENT_COLORS = response.result.event;
-//          console.log(response.result.event);
         });
       }
 
@@ -215,7 +214,6 @@
 
       var BASE_YEAR = 1985
       var BASE_YEAR_START = Date.parse(BASE_YEAR + "-01-01");
-      var MILLI_SECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 
       function getWeek(date) {
         var d1 = new Date(date);
@@ -224,16 +222,12 @@
       }
 
       function processEvent(event) {
-        // console.log("Event: ", event)
         var start = Date.parse(event.start.dateTime)
         var end = Date.parse(event.end.dateTime)
         for (week = getWeek(start); week <= getWeek(end); week++) {
-          // Change the colors only for events lasting >= 3 days.
-          if (end - start > MILLI_SECONDS_PER_DAY) {
+          if (end - start > 0) {
             var bgcolor = event.colorId ? EVENT_COLORS[event.colorId].background : "blue";
-            // var color = "black"; //white";
             document.getElementById("week_" + week).style.backgroundColor = bgcolor;
-            // document.getElementById("week_" + week).style.color = color;
           }
           if (event.summary) {
             startDate = new Date(start);
