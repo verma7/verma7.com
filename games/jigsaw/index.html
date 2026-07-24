@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Puzzle Pals 🧩</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { position:fixed; inset:0; width:100%; height:100%; overflow:hidden; overscroll-behavior:none; }
+  body {
+    font-family: ui-rounded, -apple-system, "SF Pro Rounded", "Comic Sans MS", "Chalkboard SE", sans-serif;
+    background: linear-gradient(180deg, #aee7ff 0%, #d8f4ff 45%, #fdf2c9 100%);
+    color:#334; touch-action:none;
+  }
+  button { font-family:inherit; border:none; cursor:pointer; touch-action:manipulation; }
+
+  /* ---------- screens ---------- */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .screen.active { display:flex; }
+
+  /* ---------- shared UI ---------- */
+  .topbar { display:flex; align-items:center; gap:10px; padding:10px 14px; flex:0 0 auto; }
+  .iconbtn {
+    width:52px; height:52px; border-radius:18px; font-size:26px; line-height:1;
+    background:#fff; box-shadow:0 4px 0 rgba(0,0,0,.12); flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .08s;
+  }
+  .iconbtn:active { transform:scale(.92) translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.12); }
+  .bigbtn {
+    padding:16px 34px; border-radius:26px; font-size:24px; font-weight:800; color:#fff;
+    background:linear-gradient(180deg,#ffb347,#ff8c1a); box-shadow:0 6px 0 #d96f00;
+    transition:transform .08s;
+  }
+  .bigbtn:active { transform:translateY(4px); box-shadow:0 2px 0 #d96f00; }
+  .bigbtn.green { background:linear-gradient(180deg,#7ed957,#4caf50); box-shadow:0 6px 0 #35803a; }
+  .bigbtn.green:active { box-shadow:0 2px 0 #35803a; }
+  .bigbtn.blue { background:linear-gradient(180deg,#64c8ff,#2f9bea); box-shadow:0 6px 0 #1b6fb3; }
+  .bigbtn.blue:active { box-shadow:0 2px 0 #1b6fb3; }
+
+  /* ---------- home ---------- */
+  #homeTitle {
+    text-align:center; font-size:min(9vw,54px); font-weight:900; color:#ff8c1a;
+    text-shadow: 0 3px 0 #fff, 0 6px 8px rgba(0,0,0,.12); padding:6px 0 2px; letter-spacing:1px;
+  }
+  #homeTitle span { display:inline-block; animation: bounce 2.4s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  #starChip {
+    margin-left:auto; height:52px; padding:0 18px; border-radius:18px; font-size:22px; font-weight:800;
+    background:#fff; color:#e8a100; box-shadow:0 4px 0 rgba(0,0,0,.12);
+    display:flex; align-items:center; gap:6px;
+  }
+  #starChip:active { transform:scale(.94); }
+  #gallery {
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr));
+    gap:16px; padding:10px 20px 30px; align-content:start;
+  }
+  .card {
+    position:relative; aspect-ratio:4/3; border-radius:22px; overflow:hidden;
+    background:#fff; box-shadow:0 6px 14px rgba(30,60,90,.18); border:5px solid #fff;
+    transition:transform .1s;
+  }
+  .card:active { transform:scale(.96); }
+  .card img { width:100%; height:100%; object-fit:cover; pointer-events:none; }
+  .card .resume {
+    position:absolute; left:8px; bottom:8px; background:#4caf50; color:#fff; font-weight:800;
+    font-size:14px; padding:5px 12px; border-radius:999px; box-shadow:0 2px 4px rgba(0,0,0,.25);
+  }
+  .card .del {
+    position:absolute; top:6px; right:6px; width:34px; height:34px; border-radius:50%;
+    background:rgba(255,255,255,.92); color:#e05656; font-size:18px; font-weight:900;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.25);
+  }
+  .card.upload {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    background:linear-gradient(180deg,#fff,#eaf7ff); border:5px dashed #7fc9f5; color:#2f9bea;
+    font-weight:900; font-size:19px; text-align:center;
+  }
+  .card.upload .big { font-size:52px; }
+
+  /* ---------- setup ---------- */
+  #setupBody { flex:1; overflow-y:auto; touch-action:pan-y; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; align-items:center; gap:14px; padding:4px 20px 30px; }
+  #setupPreview { width:min(46vw,300px); aspect-ratio:4/3; object-fit:cover; border-radius:22px;
+    border:6px solid #fff; box-shadow:0 8px 18px rgba(30,60,90,.25); }
+  .optlabel { font-size:21px; font-weight:900; color:#4a6; margin-top:2px; color:#3a7ca5; }
+  .optrow { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .opt {
+    padding:12px 16px; border-radius:18px; background:#fff; font-size:19px; font-weight:800; color:#556;
+    box-shadow:0 4px 0 rgba(0,0,0,.10); border:4px solid transparent; min-width:86px; text-align:center;
+  }
+  .opt small { display:block; font-size:13px; font-weight:700; color:#99a; }
+  .opt.sel { border-color:#ff8c1a; color:#ff8c1a; background:#fff7ec; }
+  .opt.sel small { color:#ffb066; }
+  #rotToggle.sel { border-color:#2f9bea; color:#2f9bea; background:#eef8ff; }
+
+  /* ---------- game ---------- */
+  #scr-game { background:linear-gradient(180deg,#bfe9ff 0%, #e6f7ff 55%, #ffefc4 100%); }
+  #gamebar { display:flex; align-items:center; gap:10px; padding:8px 12px; flex:0 0 auto; }
+  #progWrap { flex:1; height:26px; background:rgba(255,255,255,.7); border-radius:999px; overflow:hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.12); position:relative; }
+  #progFill { height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg,#7ed957,#4caf50); transition:width .3s; }
+  #progText { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:900; color:#2c6e31; }
+  #playfield { position:relative; flex:1; touch-action:none; overflow:hidden; }
+  #board { position:absolute; border-radius:10px; background:rgba(255,255,255,.55);
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,.9), 0 10px 24px rgba(30,60,90,.2); }
+  #ghost { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; border-radius:8px; pointer-events:none; }
+  #gridCv { position:absolute; inset:0; pointer-events:none; }
+  #hintFlash { position:absolute; border-radius:10px; pointer-events:none; opacity:0;
+    background:rgba(255,235,59,.55); box-shadow:0 0 0 4px #ffd600, 0 0 24px 8px rgba(255,214,0,.8); }
+  #hintFlash.on { animation:hintPulse 1.8s ease-in-out; }
+  @keyframes hintPulse { 0%,100%{opacity:0} 15%,80%{opacity:1; transform:scale(1)} 45%{transform:scale(1.06)} }
+  #peekOverlay { position:absolute; pointer-events:none; opacity:0; transition:opacity .15s;
+    border-radius:8px; z-index:500; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  #peekOverlay.on { opacity:1; }
+  .piece { position:absolute; filter:drop-shadow(0 3px 3px rgba(0,0,0,.35)); transition:none; }
+  .piece.held { filter:drop-shadow(0 10px 12px rgba(0,0,0,.4)); }
+  .piece.snapping { transition:left .12s ease-out, top .12s ease-out; }
+  .piece.placed { filter:none; animation:snapPop .3s ease-out; }
+  @keyframes snapPop { 0%{transform:scale(1)} 40%{transform:scale(1.12)} 100%{transform:scale(1)} }
+  .piece.wiggle { animation:wig .7s ease-in-out 2; }
+  @keyframes wig { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-6deg) scale(1.06)} 75%{transform:rotate(6deg) scale(1.06)} }
+
+  /* ---------- stars screen ---------- */
+  #starsBody { flex:1; overflow-y:auto; touch-action:pan-y; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; align-items:center; gap:16px; padding:8px 24px 40px; }
+  #starTotal { font-size:56px; font-weight:900; color:#e8a100; text-shadow:0 3px 0 #fff; }
+  #stickerShelf { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:640px; }
+  .sticker { width:92px; height:92px; border-radius:24px; background:#fff; font-size:52px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 14px rgba(30,60,90,.18); }
+  .sticker.locked { filter:grayscale(1); opacity:.45; font-size:40px; }
+  .sticker.new { animation:snapPop .5s ease-out 3; }
+  #nextSticker { font-size:20px; font-weight:800; color:#3a7ca5; text-align:center; }
+
+  /* ---------- modal ---------- */
+  #modalWrap { position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(40,60,90,.45); z-index:900; }
+  #modalWrap.on { display:flex; }
+  #modal { background:#fff; border-radius:30px; padding:30px 34px; max-width:86vw; text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.35); animation:modalIn .25s ease-out; }
+  @keyframes modalIn { from{transform:scale(.7); opacity:0} to{transform:scale(1); opacity:1} }
+  #modal h2 { font-size:34px; color:#ff8c1a; margin-bottom:8px; }
+  #modal p { font-size:20px; color:#667; margin-bottom:18px; font-weight:700; }
+  #modal .btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+  #modal .winstars { font-size:52px; letter-spacing:4px; margin:6px 0 14px; }
+  #modal .winstars span { display:inline-block; animation:starIn .5s backwards; }
+  @keyframes starIn { from{transform:scale(0) rotate(-180deg)} to{transform:scale(1) rotate(0)} }
+  #modal img.winpic { width:180px; border-radius:16px; border:5px solid #ffd600; margin-bottom:10px; }
+
+  #fx { position:fixed; inset:0; pointer-events:none; z-index:950; }
+
+  #toast { position:absolute; top:12px; left:50%; transform:translateX(-50%); white-space:nowrap;
+    background:rgba(255,255,255,.96); color:#3a7ca5; font-weight:900; font-size:21px;
+    padding:12px 24px; border-radius:999px; box-shadow:0 6px 16px rgba(0,0,0,.22);
+    opacity:0; transition:opacity .3s; pointer-events:none; z-index:600; }
+  #toast.on { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<section class="screen active" id="scr-home">
+  <div class="topbar">
+    <div id="homeTitle"></div>
+    <button id="starChip">⭐ <span id="starCount">0</span></button>
+  </div>
+  <div id="gallery"></div>
+  <input type="file" id="fileInput" accept="image/*" hidden>
+</section>
+
+<!-- ============ SETUP ============ -->
+<section class="screen" id="scr-setup">
+  <div class="topbar">
+    <button class="iconbtn" id="setupBack">⬅️</button>
+    <div style="font-size:26px;font-weight:900;color:#3a7ca5;">Make your puzzle!</div>
+  </div>
+  <div id="setupBody">
+    <img id="setupPreview" alt="">
+    <div class="optlabel">How many pieces?</div>
+    <div class="optrow" id="sizeRow"></div>
+    <div class="optlabel">How much help?</div>
+    <div class="optrow" id="helpRow"></div>
+    <div class="optrow">
+      <button class="opt" id="rotToggle">🔄 Spinning pieces<small>tap a piece to turn it</small></button>
+    </div>
+    <button class="bigbtn green" id="startBtn" style="font-size:30px;">▶️ Let's play!</button>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section class="screen" id="scr-game">
+  <div id="gamebar">
+    <button class="iconbtn" id="gameBack">🏠</button>
+    <div id="progWrap"><div id="progFill"></div><div id="progText"></div></div>
+    <button class="iconbtn" id="hintBtn">💡</button>
+    <button class="iconbtn" id="peekBtn">👀</button>
+    <button class="iconbtn" id="soundBtn">🔊</button>
+  </div>
+  <div id="playfield">
+    <div id="board">
+      <img id="ghost" alt="">
+      <canvas id="gridCv"></canvas>
+      <div id="hintFlash"></div>
+    </div>
+    <img id="peekOverlay" alt="">
+    <div id="toast"></div>
+  </div>
+</section>
+
+<!-- ============ STARS ============ -->
+<section class="screen" id="scr-stars">
+  <div class="topbar">
+    <button class="iconbtn" id="starsBack">⬅️</button>
+    <div style="font-size:26px;font-weight:900;color:#e8a100;">My Stars & Friends</div>
+  </div>
+  <div id="starsBody">
+    <div id="starTotal"></div>
+    <div id="nextSticker"></div>
+    <div id="stickerShelf"></div>
+  </div>
+</section>
+
+<div id="modalWrap"><div id="modal"></div></div>
+<canvas id="fx"></canvas>
+
+<script>
+'use strict';
+/* =================================================================
+   Puzzle Pals — fully offline jigsaw for little hands
+   Single file. localStorage for gallery, progress, and stars.
+   ================================================================= */
+
+const $ = id => document.getElementById(id);
+
+/* ---------------- storage ---------------- */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const K = { gallery:'jig.gallery', progress:'jig.progress', stars:'jig.stars', sound:'jig.sound' };
+
+let gallery  = LS.get(K.gallery, []);        // [{id, src}]
+let progress = LS.get(K.progress, {});       // { imgId: {...} }
+let stars    = LS.get(K.stars, { total:0 });
+let soundOn  = LS.get(K.sound, true);
+
+/* ---------------- built-in starter pictures ---------------- */
+function svgURI(s){ return 'data:image/svg+xml;utf8,' + encodeURIComponent(s); }
+const BUILTINS = [
+ { id:'b-sun', src: svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ed6ff"/><stop offset="1" stop-color="#d9f3ff"/></linearGradient></defs>
+  <rect width="800" height="600" fill="url(#s)"/>
+  <g stroke="#ffd23f" stroke-width="14" stroke-linecap="round">
+    <line x1="620" y1="20" x2="620" y2="55"/><line x1="620" y1="225" x2="620" y2="260"/>
+    <line x1="500" y1="140" x2="535" y2="140"/><line x1="705" y1="140" x2="740" y2="140"/>
+    <line x1="537" y1="57" x2="562" y2="82"/><line x1="678" y1="198" x2="703" y2="223"/>
+    <line x1="703" y1="57" x2="678" y2="82"/><line x1="562" y1="198" x2="537" y2="223"/>
+  </g>
+  <circle cx="620" cy="140" r="72" fill="#ffdd44" stroke="#f5b301" stroke-width="8"/>
+  <circle cx="596" cy="128" r="9" fill="#5b4632"/><circle cx="644" cy="128" r="9" fill="#5b4632"/>
+  <path d="M594 158 q26 24 52 0" stroke="#5b4632" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <ellipse cx="180" cy="120" rx="70" ry="34" fill="#fff"/><ellipse cx="240" cy="105" rx="55" ry="28" fill="#fff"/>
+  <ellipse cx="360" cy="60" rx="50" ry="24" fill="#fff" opacity=".9"/>
+  <ellipse cx="150" cy="640" rx="500" ry="220" fill="#8bc34a"/>
+  <ellipse cx="700" cy="680" rx="450" ry="230" fill="#66a63c"/>
+  <g><line x1="200" y1="520" x2="200" y2="450" stroke="#3e7a2a" stroke-width="8"/>
+    <circle cx="200" cy="435" r="16" fill="#ff6f91"/><circle cx="182" cy="448" r="14" fill="#ff6f91"/><circle cx="218" cy="448" r="14" fill="#ff6f91"/>
+    <circle cx="200" cy="450" r="10" fill="#ffd23f"/></g>
+  <g><line x1="330" y1="560" x2="330" y2="490" stroke="#3e7a2a" stroke-width="8"/>
+    <circle cx="330" cy="475" r="16" fill="#b388ff"/><circle cx="312" cy="488" r="14" fill="#b388ff"/><circle cx="348" cy="488" r="14" fill="#b388ff"/>
+    <circle cx="330" cy="490" r="10" fill="#ffd23f"/></g>
+  <g><line x1="560" y1="540" x2="560" y2="470" stroke="#3e7a2a" stroke-width="8"/>
+    <circle cx="560" cy="455" r="16" fill="#4fc3f7"/><circle cx="542" cy="468" r="14" fill="#4fc3f7"/><circle cx="578" cy="468" r="14" fill="#4fc3f7"/>
+    <circle cx="560" cy="470" r="10" fill="#ffd23f"/></g>
+  <path d="M400 300 q14-28 28 0 q-14 22 -28 0" fill="#ff8c1a"/><path d="M428 300 q14-28 28 0 q-14 22 -28 0" fill="#ffb347"/>
+ </svg>`) },
+ { id:'b-cat', src: svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#ffe4ec"/>
+  <circle cx="120" cy="90" r="40" fill="#ffc7d9"/><circle cx="690" cy="500" r="55" fill="#ffc7d9"/>
+  <circle cx="700" cy="90" r="30" fill="#ffd7e4"/><circle cx="90" cy="500" r="35" fill="#ffd7e4"/>
+  <path d="M245 205 L215 90 L330 155 Z" fill="#8d8d94"/><path d="M555 205 L585 90 L470 155 Z" fill="#8d8d94"/>
+  <path d="M255 185 L238 118 L305 158 Z" fill="#ffb0c8"/><path d="M545 185 L562 118 L495 158 Z" fill="#ffb0c8"/>
+  <ellipse cx="400" cy="330" rx="215" ry="195" fill="#a5a5ad"/>
+  <ellipse cx="400" cy="395" rx="130" ry="105" fill="#e8e8ee"/>
+  <circle cx="322" cy="290" r="38" fill="#fff"/><circle cx="478" cy="290" r="38" fill="#fff"/>
+  <circle cx="322" cy="296" r="22" fill="#61c26b"/><circle cx="478" cy="296" r="22" fill="#61c26b"/>
+  <circle cx="322" cy="296" r="10" fill="#223"/><circle cx="478" cy="296" r="10" fill="#223"/>
+  <circle cx="315" cy="288" r="5" fill="#fff"/><circle cx="471" cy="288" r="5" fill="#fff"/>
+  <path d="M383 360 L417 360 L400 382 Z" fill="#ff7ba2"/>
+  <path d="M400 382 v18 M400 400 q-20 24 -46 8 M400 400 q20 24 46 8" stroke="#555" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <g stroke="#8b8b93" stroke-width="6" stroke-linecap="round">
+    <line x1="255" y1="355" x2="150" y2="335"/><line x1="255" y1="380" x2="150" y2="385"/>
+    <line x1="545" y1="355" x2="650" y2="335"/><line x1="545" y1="380" x2="650" y2="385"/>
+  </g>
+  <circle cx="270" cy="365" r="22" fill="#ffb0c8" opacity=".7"/><circle cx="530" cy="365" r="22" fill="#ffb0c8" opacity=".7"/>
+ </svg>`) },
+ { id:'b-rocket', src: svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs><linearGradient id="n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16205e"/><stop offset="1" stop-color="#33368f"/></linearGradient></defs>
+  <rect width="800" height="600" fill="url(#n)"/>
+  <g fill="#fff"><circle cx="90" cy="80" r="5"/><circle cx="200" cy="180" r="4"/><circle cx="140" cy="330" r="6"/>
+   <circle cx="700" cy="120" r="5"/><circle cx="640" cy="300" r="4"/><circle cx="730" cy="430" r="6"/>
+   <circle cx="300" cy="70" r="4"/><circle cx="520" cy="60" r="5"/><circle cx="80" cy="500" r="5"/><circle cx="560" cy="520" r="4"/></g>
+  <circle cx="660" cy="180" r="58" fill="#ffcf6e"/><circle cx="640" cy="165" r="12" fill="#e8b455"/><circle cx="678" cy="200" r="9" fill="#e8b455"/>
+  <circle cx="150" cy="450" r="46" fill="#ff8f6e"/><ellipse cx="150" cy="450" rx="86" ry="14" fill="none" stroke="#ffc46e" stroke-width="8"/>
+  <g transform="rotate(-15 400 300)">
+    <path d="M400 110 Q470 210 470 330 L330 330 Q330 210 400 110 Z" fill="#f2f4ff"/>
+    <path d="M400 110 Q435 165 452 240 L348 240 Q365 165 400 110 Z" fill="#ff5f5f"/>
+    <circle cx="400" cy="290" r="34" fill="#8fd7ff" stroke="#4a7dbb" stroke-width="8"/>
+    <path d="M330 330 L285 400 L335 380 Z" fill="#ff5f5f"/><path d="M470 330 L515 400 L465 380 Z" fill="#ff5f5f"/>
+    <rect x="352" y="330" width="96" height="26" rx="10" fill="#c7cbe8"/>
+    <path d="M375 360 Q400 455 400 470 Q400 455 425 360 Z" fill="#ffb347"/>
+    <path d="M388 360 Q400 420 400 432 Q400 420 412 360 Z" fill="#ffe066"/>
+  </g>
+ </svg>`) },
+ { id:'b-fish', src: svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fc9f2"/><stop offset="1" stop-color="#1c7fc4"/></linearGradient></defs>
+  <rect width="800" height="600" fill="url(#w)"/>
+  <ellipse cx="400" cy="620" rx="500" ry="80" fill="#f4d789"/>
+  <g stroke="#2e8b57" stroke-width="12" fill="none" stroke-linecap="round">
+    <path d="M90 590 q-18-60 12-100 q-26-46 4-96"/>
+    <path d="M710 590 q20-56 -8-104 q24-40 -2-88"/>
+  </g>
+  <g fill="#fff" opacity=".55"><circle cx="620" cy="200" r="10"/><circle cx="648" cy="150" r="7"/><circle cx="610" cy="100" r="5"/>
+   <circle cx="180" cy="160" r="8"/><circle cx="205" cy="110" r="6"/></g>
+  <g>
+    <path d="M250 300 Q380 190 520 300 Q380 410 250 300 Z" fill="#ff9f43"/>
+    <path d="M250 300 L185 250 L185 350 Z" fill="#ff7f24"/>
+    <path d="M370 236 q30-40 62 -6 Z" fill="#ff7f24"/>
+    <circle cx="462" cy="286" r="18" fill="#fff"/><circle cx="468" cy="288" r="9" fill="#223"/>
+    <path d="M492 322 q14 8 24 0" stroke="#b35913" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M330 300 q20 -18 40 0 q-20 18 -40 0" fill="#ffc46e"/>
+  </g>
+  <g><path d="M560 440 Q620 400 680 440 Q620 480 560 440 Z" fill="#b388ff"/><path d="M560 440 L530 420 L530 460 Z" fill="#9b6ef3"/>
+   <circle cx="652" cy="434" r="8" fill="#fff"/><circle cx="655" cy="435" r="4" fill="#223"/></g>
+  <g><path d="M150 430 Q195 402 240 430 Q195 458 150 430 Z" fill="#7ed957"/><path d="M150 430 L128 416 L128 444 Z" fill="#5cb643"/>
+   <circle cx="220" cy="426" r="6" fill="#fff"/><circle cx="222" cy="427" r="3" fill="#223"/></g>
+  <path d="M540 560 l16 20 l-16 12 l-16 -12 Z M540 560 l24 -4 l-8 24 M540 560 l-24 -4 l8 24" fill="#ff8fa3" stroke="#ff8fa3" stroke-width="6" stroke-linejoin="round"/>
+ </svg>`) },
+];
+
+/* ---------------- sounds (WebAudio, no files) ---------------- */
+let AC = null;
+function ac(){
+  if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if(AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(freq, when, dur, type, vol, glideTo){
+  if(!soundOn) return;
+  try{
+    const c = ac(), o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, when);
+    if(glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, when + dur);
+    g.gain.setValueAtTime(vol || .18, when);
+    g.gain.exponentialRampToValueAtTime(.001, when + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(when); o.stop(when + dur + .02);
+  }catch(e){}
+}
+const now = () => ac().currentTime;
+function sndTap(){ if(soundOn) tone(760, now(), .05, 'square', .06); }
+function sndPop(){ if(soundOn){ const t = now(); tone(480, t, .1, 'triangle', .3, 950); tone(1400, t+.05, .08, 'sine', .12); } }
+function sndHint(){ if(soundOn){ const t = now(); tone(988, t, .12, 'sine', .2); tone(1319, t+.12, .2, 'sine', .2); } }
+function sndOops(){ if(soundOn) tone(300, now(), .12, 'triangle', .12, 220); }
+function sndWin(){
+  if(!soundOn) return;
+  const t = now(), notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+  notes.forEach((f,i) => tone(f, t + i*.12, .3, 'triangle', .22));
+  [1046.5, 1318.5, 1568].forEach(f => tone(f, t + .75, .8, 'sine', .16));
+}
+
+/* ---------------- confetti / sparkles ---------------- */
+const fx = $('fx'), fxc = fx.getContext('2d');
+let parts = [], fxRunning = false;
+const COLORS = ['#ff5f5f','#ffb347','#ffd600','#7ed957','#4fc3f7','#b388ff','#ff8fa3'];
+function sizeFx(){ fx.width = innerWidth * devicePixelRatio; fx.height = innerHeight * devicePixelRatio;
+  fx.style.width = innerWidth+'px'; fx.style.height = innerHeight+'px'; fxc.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+sizeFx();
+function burst(x, y, n, spread){
+  for(let i=0;i<n;i++){
+    const a = Math.random()*Math.PI*2, s = (spread||5) * (.4 + Math.random());
+    parts.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - 3, g:.22, dieAt: performance.now() + 2500, life: 60 + Math.random()*40,
+      c: COLORS[(Math.random()*COLORS.length)|0], r: 3 + Math.random()*5, rot:Math.random()*6, vr:(Math.random()-.5)*.3 });
+  }
+  if(!fxRunning){ fxRunning = true; requestAnimationFrame(fxTick); }
+}
+function confettiRain(){
+  for(let i=0;i<140;i++){
+    parts.push({ x: Math.random()*innerWidth, y: -20 - Math.random()*innerHeight*.5,
+      vx:(Math.random()-.5)*2, vy: 2+Math.random()*3, g:.05, dieAt: performance.now() + 5000 + Math.random()*1500, life: 160 + Math.random()*80,
+      c: COLORS[(Math.random()*COLORS.length)|0], r: 4 + Math.random()*6, rot:Math.random()*6, vr:(Math.random()-.5)*.3 });
+  }
+  if(!fxRunning){ fxRunning = true; requestAnimationFrame(fxTick); }
+}
+function fxTick(){
+  fxc.clearRect(0,0,innerWidth,innerHeight);
+  const tNow = performance.now();
+  parts = parts.filter(p => p.life-- > 0 && p.y < innerHeight + 30 && tNow < p.dieAt);
+  for(const p of parts){
+    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.rot += p.vr;
+    fxc.save(); fxc.translate(p.x, p.y); fxc.rotate(p.rot);
+    fxc.fillStyle = p.c; fxc.globalAlpha = Math.min(1, p.life/30);
+    fxc.fillRect(-p.r, -p.r*.6, p.r*2, p.r*1.2);
+    fxc.restore();
+  }
+  if(parts.length){ requestAnimationFrame(fxTick); }
+  else { fxRunning = false; fxc.clearRect(0,0,innerWidth,innerHeight); }
+}
+
+/* ---------------- screens & modal ---------------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+}
+function openModal(html){ $('modal').innerHTML = html; $('modalWrap').classList.add('on'); }
+function closeModal(){ $('modalWrap').classList.remove('on'); }
+
+/* ---------------- home / gallery ---------------- */
+const TITLE = 'Puzzle Pals!';
+$('homeTitle').innerHTML = [...('🧩 ' + TITLE)].map((ch,i) =>
+  `<span style="animation-delay:${i*.08}s">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('');
+
+function allImages(){ return [...BUILTINS, ...gallery]; }
+function findImage(id){ return allImages().find(g => g.id === id); }
+
+function renderHome(){
+  $('starCount').textContent = stars.total;
+  const g = $('gallery');
+  g.innerHTML = '';
+  const up = document.createElement('div');
+  up.className = 'card upload';
+  up.innerHTML = '<div class="big">📷</div><div>Add your<br>own photo!</div>';
+  up.addEventListener('click', () => { sndTap(); $('fileInput').click(); });
+  g.appendChild(up);
+  for(const item of allImages()){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const img = document.createElement('img');
+    img.src = item.src; img.alt = '';
+    card.appendChild(img);
+    if(progress[item.id]){
+      const b = document.createElement('div'); b.className = 'resume'; b.textContent = '▶ keep going!';
+      card.appendChild(b);
+    }
+    if(!item.id.startsWith('b-')){
+      const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕';
+      del.addEventListener('click', e => { e.stopPropagation(); confirmDelete(item.id); });
+      card.appendChild(del);
+    }
+    card.addEventListener('click', () => { sndTap(); pickImage(item.id); });
+    g.appendChild(card);
+  }
+}
+
+function confirmDelete(id){
+  sndTap();
+  openModal(`<h2>Remove photo?</h2><p>This photo will go away.</p>
+    <div class="btns"><button class="bigbtn blue" id="mNo">Keep it</button>
+    <button class="bigbtn" id="mYes">Remove</button></div>`);
+  $('mNo').onclick = () => { sndTap(); closeModal(); };
+  $('mYes').onclick = () => {
+    sndTap();
+    gallery = gallery.filter(x => x.id !== id);
+    delete progress[id];
+    LS.set(K.gallery, gallery); LS.set(K.progress, progress);
+    closeModal(); renderHome();
+  };
+}
+
+function pickImage(id){
+  const item = findImage(id);
+  if(!item) return;
+  const p = progress[id];
+  if(p){
+    openModal(`<h2>Keep going? 🧩</h2><p>You already started this puzzle!</p>
+      <div class="btns"><button class="bigbtn green" id="mGo">▶ Keep going</button>
+      <button class="bigbtn blue" id="mNew">🔄 Start new</button></div>`);
+    $('mGo').onclick = () => { sndTap(); closeModal(); resumeGame(id); };
+    $('mNew').onclick = () => { sndTap(); closeModal(); openSetup(id); };
+  } else {
+    openSetup(id);
+  }
+}
+
+/* ---------------- upload ---------------- */
+$('fileInput').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const entry = { id: 'u' + Date.now(), src: await downscale(file, 1200, .82) };
+    gallery.push(entry);
+    let ok = LS.set(K.gallery, gallery);
+    if(!ok){ entry.src = await downscale(file, 900, .6); ok = LS.set(K.gallery, gallery); }
+    if(!ok){ entry.src = await downscale(file, 650, .5); ok = LS.set(K.gallery, gallery); }
+    if(!ok){
+      gallery.pop();
+      openModal(`<h2>Uh oh! 🗄️</h2><p>The toy box is full!<br>Remove some old photos first.</p>
+        <div class="btns"><button class="bigbtn blue" id="mOk">Okay</button></div>`);
+      $('mOk').onclick = closeModal;
+      return;
+    }
+    renderHome();
+    openSetup(entry.id);
+  }catch(err){
+    openModal(`<h2>Oops!</h2><p>That picture didn't work.<br>Try another one!</p>
+      <div class="btns"><button class="bigbtn blue" id="mOk">Okay</button></div>`);
+    $('mOk').onclick = closeModal;
+  }
+});
+function downscale(file, maxDim, q){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+      const sc = Math.min(1, maxDim / Math.max(iw, ih));
+      const w = Math.round(iw * sc), h = Math.round(ih * sc);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      res(cv.toDataURL('image/jpeg', q));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+/* ---------------- setup ---------------- */
+const SIZES = [
+  { n:2, emoji:'🐣', label:'4 pieces' },
+  { n:3, emoji:'🙂', label:'9 pieces' },
+  { n:4, emoji:'😃', label:'16 pieces' },
+  { n:5, emoji:'🤔', label:'25 pieces' },
+  { n:6, emoji:'🧠', label:'36 pieces' },
+];
+const HELPS = [
+  { id:'full', emoji:'🌟', label:'Lots of help', sub:'picture + hints' },
+  { id:'some', emoji:'🙂', label:'Some help', sub:'faint picture' },
+  { id:'min',  emoji:'💪', label:'Big kid', sub:'no picture!' },
+];
+let setup = { imgId:null, n:3, help:'full', rotate:false };
+
+function openSetup(imgId){
+  setup.imgId = imgId;
+  $('setupPreview').src = findImage(imgId).src;
+  renderSetupRows();
+  show('scr-setup');
+}
+function renderSetupRows(){
+  const sr = $('sizeRow'); sr.innerHTML = '';
+  for(const s of SIZES){
+    const b = document.createElement('button');
+    b.className = 'opt' + (setup.n === s.n ? ' sel' : '');
+    b.innerHTML = `${s.emoji} ${s.n}×${s.n}<small>${s.label}</small>`;
+    b.onclick = () => { sndTap(); setup.n = s.n; renderSetupRows(); };
+    sr.appendChild(b);
+  }
+  const hr = $('helpRow'); hr.innerHTML = '';
+  for(const h of HELPS){
+    const b = document.createElement('button');
+    b.className = 'opt' + (setup.help === h.id ? ' sel' : '');
+    b.innerHTML = `${h.emoji} ${h.label}<small>${h.sub}</small>`;
+    b.onclick = () => { sndTap(); setup.help = h.id; renderSetupRows(); };
+    hr.appendChild(b);
+  }
+  $('rotToggle').className = 'opt' + (setup.rotate ? ' sel' : '');
+}
+$('rotToggle').onclick = () => { sndTap(); setup.rotate = !setup.rotate; renderSetupRows(); };
+$('setupBack').onclick = () => { sndTap(); show('scr-home'); };
+$('startBtn').onclick = () => { sndTap(); startGame({ imgId: setup.imgId, n: setup.n, help: setup.help, rotate: setup.rotate }); };
+
+/* =================================================================
+   GAME
+   ================================================================= */
+let game = null;     // active game state
+let zTop = 100;
+const pf = $('playfield'), boardEl = $('board');
+
+function randSign(){ return Math.random() < .5 ? -1 : 1; }
+
+function startGame(opts){
+  const item = findImage(opts.imgId);
+  if(!item) return;
+  const img = new Image();
+  img.onload = () => {
+    const n = opts.n;
+    const tabs = opts.tabs || {
+      right:  Array.from({length:n}, () => Array.from({length:n-1}, randSign)),
+      bottom: Array.from({length:n-1}, () => Array.from({length:n}, randSign)),
+    };
+    game = {
+      imgId: opts.imgId, img, n, help: opts.help, rotate: !!opts.rotate, tabs,
+      pieces: [], placedCount: 0,
+      restore: opts.restore || null,   // {placed:[i], loose:[{i,fx,fy,rot}]}
+    };
+    show('scr-game');
+    buildGame();
+  };
+  img.src = item.src;
+}
+
+function resumeGame(imgId){
+  const p = progress[imgId];
+  if(!p){ openSetup(imgId); return; }
+  startGame({ imgId, n: p.n, help: p.help, rotate: p.rotate, tabs: p.tabs,
+    restore: { placed: p.placed, loose: p.loose } });
+}
+
+function buildGame(){
+  const g = game;
+  // clear old pieces
+  pf.querySelectorAll('.piece').forEach(el => el.remove());
+  g.pieces = []; g.placedCount = 0; zTop = 100;
+
+  const pfW = pf.clientWidth, pfH = pf.clientHeight;
+  g.pfW = pfW; g.pfH = pfH;
+
+  // board sized to image aspect, leaving room for loose pieces
+  const landscape = pfW > pfH;
+  const small = g.n <= 3 ? .12 : 0;   // smaller board for few (big) pieces → room to scatter
+  const maxW = pfW * ((landscape ? .58 : .78) - small);
+  const maxH = pfH * ((landscape ? .74 : .52) - small);
+  const iw = g.img.naturalWidth || g.img.width, ih = g.img.naturalHeight || g.img.height;
+  const ar = (iw > 0 && ih > 0) ? iw / ih : 4/3;   // Safari reports 0×0 for dimensionless SVGs
+  let bw = maxW, bh = bw / ar;
+  if(bh > maxH){ bh = maxH; bw = bh * ar; }
+  g.boardW = Math.round(bw); g.boardH = Math.round(bh);
+  g.boardX = Math.round((pfW - bw) / 2);
+  g.boardY = Math.round((pfH - bh) * (landscape ? .45 : .30));
+  g.cellW = g.boardW / g.n; g.cellH = g.boardH / g.n;
+  g.pad = Math.ceil(.3 * Math.max(g.cellW, g.cellH));
+  g.tol = Math.max(22, ({ full:.4, some:.3, min:.22 })[g.help] * Math.min(g.cellW, g.cellH));
+
+  // board chrome
+  boardEl.style.left = g.boardX + 'px'; boardEl.style.top = g.boardY + 'px';
+  boardEl.style.width = g.boardW + 'px'; boardEl.style.height = g.boardH + 'px';
+  $('ghost').src = g.img.src;
+  $('ghost').style.opacity = ({ full:.42, some:.20, min:0 })[g.help];
+  $('hintBtn').style.display = g.help === 'full' ? '' : 'none';
+  $('hintFlash').classList.remove('on');
+  $('peekOverlay').src = g.img.src;
+  Object.assign($('peekOverlay').style, { left:g.boardX+'px', top:g.boardY+'px', width:g.boardW+'px', height:g.boardH+'px' });
+
+  buildPieces();
+  drawGridOverlay();
+
+  // restore or scatter
+  const restore = g.restore; g.restore = null;
+  if(restore){
+    const looseMap = {};
+    for(const l of restore.loose) looseMap[l.i] = l;
+    for(const p of g.pieces){
+      if(restore.placed.includes(p.i)) placePiece(p, true);
+      else {
+        const l = looseMap[p.i];
+        if(l){ p.rot = l.rot || 0; movePiece(p, l.fx * pfW, l.fy * pfH); applyRot(p); }
+        else scatterPiece(p);
+      }
+    }
+  } else {
+    for(const p of g.pieces) scatterPiece(p);
+  }
+  updateProgressBar();
+  if(g.rotate) toast('🔄 Tap a piece to spin it around!', 4500);
+}
+
+/* ---- classic jigsaw edge: 3 segments with a mushroom tab ---- */
+function edgePath(p, sx, sy, ex, ey, s){
+  if(!s){ p.lineTo(ex, ey); return; }
+  const dx = ex - sx, dy = ey - sy;
+  const nx = -dy * s, ny = dx * s;
+  const P = (a, b) => [sx + dx*a + nx*b, sy + dy*a + ny*b];
+  let q;
+  q = P(.35, 0);            p.lineTo(q[0], q[1]);
+  const c1 = P(.47, .03), c2 = P(.28, .24), m = P(.5, .28);
+  p.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], m[0], m[1]);
+  const c3 = P(.72, .24), c4 = P(.53, .03), e2 = P(.65, 0);
+  p.bezierCurveTo(c3[0], c3[1], c4[0], c4[1], e2[0], e2[1]);
+  p.lineTo(ex, ey);
+}
+function piecePath(r, c){
+  const g = game, { cellW, cellH } = g, { right, bottom } = g.tabs;
+  const x0 = c*cellW, y0 = r*cellH, x1 = x0+cellW, y1 = y0+cellH;
+  const p = new Path2D();
+  p.moveTo(x0, y0);
+  edgePath(p, x0, y0, x1, y0, r === 0 ? 0 : -bottom[r-1][c]);       // top (L→R)
+  edgePath(p, x1, y0, x1, y1, c === g.n-1 ? 0 : right[r][c]);       // right (T→B)
+  edgePath(p, x1, y1, x0, y1, r === g.n-1 ? 0 : bottom[r][c]);      // bottom (R→L)
+  edgePath(p, x0, y1, x0, y0, c === 0 ? 0 : -right[r][c-1]);        // left (B→T)
+  p.closePath();
+  return p;
+}
+
+function buildPieces(){
+  const g = game, dpr = Math.min(2, devicePixelRatio || 1);
+  const w = g.cellW + 2*g.pad, h = g.cellH + 2*g.pad;
+  for(let r = 0; r < g.n; r++) for(let c = 0; c < g.n; c++){
+    const path = piecePath(r, c);
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+    cv.style.width = w+'px'; cv.style.height = h+'px';
+    cv.className = 'piece';
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(g.pad - c*g.cellW, g.pad - r*g.cellH);
+    ctx.save();
+    ctx.clip(path);
+    ctx.drawImage(g.img, 0, 0, g.boardW, g.boardH);
+    ctx.restore();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.stroke(path);
+    ctx.lineWidth = 1;   ctx.strokeStyle = 'rgba(40,40,60,.35)';   ctx.stroke(path);
+    const p = {
+      i: r*g.n + c, r, c, el: cv, placed: false, rot: 0,
+      w, h,
+      tx: g.boardX + c*g.cellW - g.pad,     // target position in playfield coords
+      ty: g.boardY + r*g.cellH - g.pad,
+      x: 0, y: 0,
+    };
+    attachDrag(p);
+    pf.appendChild(cv);
+    g.pieces.push(p);
+  }
+}
+
+function drawGridOverlay(){
+  const g = game, cv = $('gridCv'), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = g.boardW * dpr; cv.height = g.boardH * dpr;
+  cv.style.width = g.boardW+'px'; cv.style.height = g.boardH+'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if(g.help === 'min') return;
+  ctx.setLineDash([7, 6]);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(80,110,160,.5)';
+  for(let r = 0; r < g.n; r++) for(let c = 0; c < g.n; c++) ctx.stroke(piecePath(r, c));
+}
+
+function movePiece(p, x, y){
+  const g = game;
+  p.x = Math.max(-g.pad, Math.min(g.pfW - p.w + g.pad, x));
+  p.y = Math.max(-g.pad*.5, Math.min(g.pfH - p.h + g.pad, y));
+  p.el.style.left = p.x + 'px';
+  p.el.style.top  = p.y + 'px';
+}
+function applyRot(p){ p.el.style.transform = p.rot ? `rotate(${p.rot*90}deg)` : ''; }
+
+function scatterPiece(p){
+  const g = game;
+  const bands = [];
+  const yMax = g.pfH - p.h + g.pad, xMax = g.pfW - p.w + g.pad;
+  const bx0 = g.boardX - p.w, bx1 = g.boardX + g.boardW, by1 = g.boardY + g.boardH;
+  if(bx0 > 10) bands.push({ x0:-g.pad*.5, x1:bx0, y0:10, y1:yMax });                 // left
+  if(g.pfW - bx1 > p.w*.6) bands.push({ x0:bx1 - g.pad, x1:xMax, y0:10, y1:yMax });  // right
+  if(g.pfH - by1 > p.h*.4) bands.push({ x0:-g.pad*.5, x1:xMax, y0:by1 - g.pad, y1:yMax }); // bottom
+  const b = bands.length ? bands[(Math.random()*bands.length)|0]
+                         : { x0:-g.pad*.5, x1:xMax, y0:g.pfH*.55, y1:yMax };
+  movePiece(p, b.x0 + Math.random()*Math.max(1, b.x1 - b.x0), b.y0 + Math.random()*Math.max(1, b.y1 - b.y0));
+  if(g.rotate){ p.rot = (Math.random()*4)|0; applyRot(p); }
+  p.el.style.zIndex = 10 + ((Math.random()*80)|0);
+}
+
+/* ---- dragging ---- */
+let pfRect = null;
+function attachDrag(p){
+  p.el.addEventListener('pointerdown', e => {
+    if(p.placed || !game) return;
+    e.preventDefault();
+    ac(); // unlock audio
+    pfRect = pf.getBoundingClientRect();
+    try{ p.el.setPointerCapture(e.pointerId); }catch(err){}
+    p.el.classList.add('held');
+    p.el.classList.remove('snapping');
+    p.el.style.zIndex = ++zTop;
+    p.drag = {
+      ox: (e.clientX - pfRect.left) - p.x,
+      oy: (e.clientY - pfRect.top) - p.y,
+      sx: e.clientX, sy: e.clientY, t: Date.now(), moved: false,
+    };
+  });
+  p.el.addEventListener('pointermove', e => {
+    if(!p.drag) return;
+    e.preventDefault();
+    if(Math.abs(e.clientX - p.drag.sx) + Math.abs(e.clientY - p.drag.sy) > 6) p.drag.moved = true;
+    movePiece(p, (e.clientX - pfRect.left) - p.drag.ox, (e.clientY - pfRect.top) - p.drag.oy);
+  });
+  const up = e => {
+    if(!p.drag) return;
+    const d = p.drag; p.drag = null;
+    p.el.classList.remove('held');
+    const isTap = !d.moved && Date.now() - d.t < 350;
+    if(isTap && game.rotate){
+      p.rot = (p.rot + 1) % 4; applyRot(p); sndTap();
+    } else {
+      trySnap(p);
+    }
+    saveProgressSoon();
+  };
+  p.el.addEventListener('pointerup', up);
+  p.el.addEventListener('pointercancel', up);
+}
+
+let toastTimer = null;
+function toast(msg, ms){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms || 3000);
+}
+function trySnap(p){
+  const g = game;
+  const dx = p.x - p.tx, dy = p.y - p.ty;
+  const near = Math.sqrt(dx*dx + dy*dy) <= g.tol;
+  if(p.rot % 4 !== 0){
+    if(near){   // right spot, wrong way up — show the kid what to do
+      sndOops();
+      p.el.classList.add('wiggle');
+      setTimeout(() => p.el.classList.remove('wiggle'), 1500);
+      toast('Almost! Tap the piece to spin it 🔄');
+    }
+    return;
+  }
+  if(near) placePiece(p, false);
+}
+function placePiece(p, silent){
+  const g = game;
+  p.placed = true; p.rot = 0; applyRot(p);
+  p.x = p.tx; p.y = p.ty;
+  if(!silent) p.el.classList.add('snapping');
+  p.el.style.left = p.tx + 'px'; p.el.style.top = p.ty + 'px';
+  p.el.style.zIndex = 2;
+  p.el.style.pointerEvents = 'none';
+  p.el.classList.add('placed');
+  g.placedCount++;
+  updateProgressBar();
+  if(!silent){
+    sndPop();
+    burst(p.tx + p.w/2, p.ty + p.h/2 + pf.getBoundingClientRect().top, 12, 4);
+    saveProgressSoon();
+    if(g.placedCount === g.n * g.n) setTimeout(celebrate, 350);
+  }
+}
+function updateProgressBar(){
+  const g = game; if(!g) return;
+  const total = g.n * g.n;
+  $('progFill').style.width = (100 * g.placedCount / total) + '%';
+  $('progText').textContent = g.placedCount + ' / ' + total + (g.placedCount === total ? ' 🌟' : ' 🧩');
+}
+
+/* ---- progress persistence ---- */
+let saveTimer = null;
+function saveProgressSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveProgressNow, 400); }
+function saveProgressNow(){
+  const g = game; if(!g) return;
+  if(g.placedCount === g.n * g.n){ delete progress[g.imgId]; LS.set(K.progress, progress); return; }
+  progress[g.imgId] = {
+    n: g.n, help: g.help, rotate: g.rotate, tabs: g.tabs,
+    placed: g.pieces.filter(p => p.placed).map(p => p.i),
+    loose:  g.pieces.filter(p => !p.placed).map(p => ({ i: p.i, fx: p.x / g.pfW, fy: p.y / g.pfH, rot: p.rot })),
+  };
+  LS.set(K.progress, progress);
+}
+
+/* ---- hint / peek / sound / back ---- */
+let hintBusy = false;
+$('hintBtn').addEventListener('click', () => {
+  const g = game; if(!g || hintBusy) return;
+  const loose = g.pieces.filter(p => !p.placed);
+  if(!loose.length) return;
+  hintBusy = true; sndHint();
+  const p = loose[(Math.random()*loose.length)|0];
+  const f = $('hintFlash');
+  Object.assign(f.style, { left: p.c*g.cellW+'px', top: p.r*g.cellH+'px', width: g.cellW+'px', height: g.cellH+'px' });
+  f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+  p.el.classList.add('wiggle');
+  p.el.style.zIndex = ++zTop;
+  setTimeout(() => { p.el.classList.remove('wiggle'); f.classList.remove('on'); hintBusy = false; }, 1900);
+});
+function peekOn(e){ e.preventDefault(); ac(); $('peekOverlay').classList.add('on'); }
+function peekOff(){ $('peekOverlay').classList.remove('on'); }
+$('peekBtn').addEventListener('pointerdown', peekOn);
+$('peekBtn').addEventListener('pointerup', peekOff);
+$('peekBtn').addEventListener('pointercancel', peekOff);
+$('peekBtn').addEventListener('pointerleave', peekOff);
+
+function renderSoundBtn(){ $('soundBtn').textContent = soundOn ? '🔊' : '🔇'; }
+$('soundBtn').addEventListener('click', () => { soundOn = !soundOn; LS.set(K.sound, soundOn); renderSoundBtn(); sndTap(); });
+renderSoundBtn();
+
+$('gameBack').addEventListener('click', () => {
+  sndTap(); saveProgressNow(); game = null; renderHome(); show('scr-home');
+});
+
+/* ---- win! ---- */
+const STICKERS = ['🦄','🐬','🦖','🚀','🌈','🦁','🐼','🦋','🐙','🎠','🐳','🦊','🐝','🌻','🤖','🎪'];
+const CHEERS = ['You did it!','Amazing!','Super star!','Wow, great job!','Puzzle champion!','Fantastic!'];
+function starsForSize(n){ return ({2:1, 3:2, 4:3, 5:4, 6:5})[n] || 1; }
+
+function celebrate(){
+  const g = game; if(!g) return;
+  const earned = starsForSize(g.n);
+  const before = Math.floor(stars.total / 5);
+  stars.total += earned;
+  const after = Math.floor(stars.total / 5);
+  LS.set(K.stars, stars);
+  delete progress[g.imgId]; LS.set(K.progress, progress);
+  sndWin(); confettiRain();
+  setTimeout(confettiRain, 700);
+  const starHtml = Array.from({length: earned}, (_, i) =>
+    `<span style="animation-delay:${.3 + i*.25}s">⭐</span>`).join('');
+  const newSticker = after > before ? STICKERS[Math.min(after, STICKERS.length) - 1] : null;
+  openModal(`
+    <h2>🎉 ${CHEERS[(Math.random()*CHEERS.length)|0]} 🎉</h2>
+    <img class="winpic" src="${g.img.src}" alt="">
+    <div class="winstars">${starHtml}</div>
+    ${newSticker ? `<p style="font-size:24px;">New friend unlocked! <span style="font-size:40px;">${newSticker}</span></p>` : ''}
+    <div class="btns">
+      <button class="bigbtn green" id="mAgain">🔁 Play again</button>
+      <button class="bigbtn blue" id="mHome">🏠 New puzzle</button>
+    </div>`);
+  $('mAgain').onclick = () => { sndTap(); closeModal(); startGame({ imgId: g.imgId, n: g.n, help: g.help, rotate: g.rotate }); };
+  $('mHome').onclick = () => { sndTap(); closeModal(); game = null; renderHome(); show('scr-home'); };
+}
+
+/* ---------------- stars screen ---------------- */
+$('starChip').addEventListener('click', () => { sndTap(); renderStars(); show('scr-stars'); });
+$('starsBack').addEventListener('click', () => { sndTap(); renderHome(); show('scr-home'); });
+function renderStars(){
+  $('starTotal').textContent = '⭐ ' + stars.total;
+  const unlocked = Math.min(Math.floor(stars.total / 5), STICKERS.length);
+  const toNext = 5 - (stars.total % 5);
+  $('nextSticker').textContent = unlocked >= STICKERS.length
+    ? 'You found ALL the friends! 🎉'
+    : `${toNext} more star${toNext === 1 ? '' : 's'} to meet a new friend!`;
+  const shelf = $('stickerShelf'); shelf.innerHTML = '';
+  STICKERS.forEach((s, i) => {
+    const d = document.createElement('div');
+    const isNew = i === unlocked - 1;
+    d.className = 'sticker' + (i < unlocked ? (isNew ? ' new' : '') : ' locked');
+    d.textContent = i < unlocked ? s : '❓';
+    shelf.appendChild(d);
+  });
+}
+
+/* ---------------- resize / orientation ---------------- */
+let rsTimer = null;
+window.addEventListener('resize', () => {
+  sizeFx();
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(() => {
+    if(!game || !document.querySelector('#scr-game.active')) return;
+    const g = game;
+    game.restore = {
+      placed: g.pieces.filter(p => p.placed).map(p => p.i),
+      loose:  g.pieces.filter(p => !p.placed).map(p => ({ i: p.i, fx: p.x / g.pfW, fy: p.y / g.pfH, rot: p.rot })),
+    };
+    buildGame();
+  }, 250);
+});
+
+/* ---------------- global gesture guards ---------------- */
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
+pf.addEventListener('touchmove', e => e.preventDefault(), { passive:false });
+
+/* ---------------- go! ---------------- */
+renderHome();
+window.JIG = { get game(){ return game; }, pf };   // debug handle
+</script>
+</body>
+</html>
