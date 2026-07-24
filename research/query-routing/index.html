@@ -119,7 +119,7 @@ and an explicit latency/cost frontier.</p>
   <div class="tile"><b>κ = 0.915</b><span>inter-annotator agreement of the label ensemble</span></div>
 </div>
 
-<p class="sans" style="font-size:.95rem"><a href="demo/"><b>&#9654; Try the live demo</b></a> — the exact int8 export of the recommended model, served from this site.</p>
+<p class="sans" style="font-size:.95rem"><a href="demo/"><b>&#9654; Try the live demo</b></a> — the exact int8 export of the recommended model, served from this site. Code on <a href="https://github.com/verma7/commerce-query-router">GitHub</a>.</p>
 
 <p><b>Recommendation.</b> Ship the fine-tuned DistilBERT trained with commerce-complex
 enrichment, operated at threshold τ&nbsp;=&nbsp;0.25. It is within noise of the best
@@ -527,8 +527,8 @@ latency; the same LLM budget is better spent generating the overviews themselves
 </ol>
 
 <h2><span class="no">11</span>Reproducibility</h2>
-<p>Everything lives in <code>Fable/query-classifier</code> (git-initialized, data and model
-weights gitignored): <code>src/rubric.py</code> (taxonomy), <code>src/label.py</code> +
+<p>All code is public at <a href="https://github.com/verma7/commerce-query-router">github.com/verma7/commerce-query-router</a>
+(data and model weights gitignored, pipeline fully scripted): <code>src/rubric.py</code> (taxonomy), <code>src/label.py</code> +
 <code>aggregate_labels.py</code> (ensemble labeling, resumable),
 <code>train.py</code> / <code>train_transformer.py</code> / <code>train_enriched.py</code>
 (models, <code>--lodo</code>), <code>gemini_classify.py</code> (LLM baseline),
