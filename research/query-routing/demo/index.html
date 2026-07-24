@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commerce Query Router — demo</title>
+<style>
+  :root { --bg:#fafaf8; --fg:#1a1a1a; --muted:#6b6b6b; --card:#fff; --line:#e5e2dc;
+          --simple:#0e7a4d; --complex:#8a4bd3; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141414; --fg:#ececec; --muted:#9a9a9a; --card:#1e1e1e; --line:#333;
+            --simple:#3ecf8e; --complex:#b585ff; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 -apple-system, system-ui, sans-serif; background:var(--bg); color:var(--fg);
+         display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:6vh 16px; }
+  h1 { font-size:1.4rem; margin:0 0 .3rem; }
+  p.sub { color:var(--muted); margin:0 0 2rem; text-align:center; max-width:34rem; }
+  form { display:flex; gap:8px; width:100%; max-width:40rem; }
+  input { flex:1; font-size:1.05rem; padding:.7rem 1rem; border:1px solid var(--line); border-radius:10px;
+          background:var(--card); color:var(--fg); outline:none; }
+  input:focus { border-color:var(--complex); }
+  button { font-size:1rem; padding:.7rem 1.2rem; border:0; border-radius:10px; background:var(--fg);
+           color:var(--bg); cursor:pointer; }
+  #out { width:100%; max-width:40rem; margin-top:1.5rem; display:flex; flex-direction:column; gap:.8rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem 1.2rem; }
+  .route { font-weight:700; font-size:1.05rem; }
+  .route.simple { color:var(--simple); }
+  .route.complex { color:var(--complex); }
+  .bar { height:8px; border-radius:4px; background:var(--line); margin-top:.6rem; overflow:hidden; }
+  .bar > div { height:100%; background:var(--complex); transition:width .3s; }
+  .meta { color:var(--muted); font-size:.85rem; margin-top:.5rem; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:2rem; max-width:40rem; justify-content:center; }
+  .chips button { background:var(--card); color:var(--fg); border:1px solid var(--line); font-size:.85rem;
+                  padding:.35rem .7rem; border-radius:999px; }
+</style>
+<h1>Commerce Query Router</h1>
+<p class="sub">Live model — int8 ONNX DistilBERT on an e2-micro. Decides: plain <b style="color:var(--simple)">search grid</b>
+or <b style="color:var(--complex)">LLM shopping overview</b>? · <a href="../" style="color:inherit">Read the report</a></p>
+<form onsubmit="go(event)">
+  <input id="q" placeholder="e.g. shirts for a beach wedding in hawaii" autofocus autocomplete="off">
+  <button>Route</button>
+</form>
+<div id="out"></div>
+<div class="chips">
+  <button onclick="fill(this)">men's shirts</button>
+  <button onclick="fill(this)">best vacuum for pet hair</button>
+  <button onclick="fill(this)">nike air max 90 size 11</button>
+  <button onclick="fill(this)">how to fix a squeaky door</button>
+  <button onclick="fill(this)">gifts for 10 year old who likes space</button>
+  <button onclick="fill(this)">tv under 500</button>
+  <button onclick="fill(this)">tv under 500 for bright room gaming</button>
+</div>
+<script>
+function fill(b){ document.getElementById('q').value = b.textContent; go(); }
+async function go(e){
+  if (e) e.preventDefault();
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  const t0 = performance.now();
+  const r = await fetch('/classify?q=' + encodeURIComponent(q)).then(r => r.json());
+  const ms = (performance.now() - t0).toFixed(0);
+  const simple = r.label === 'SIMPLE';
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `<div>“${q.replace(/</g,'&lt;')}”</div>
+    <div class="route ${simple ? 'simple' : 'complex'}">
+      ${simple ? '→ Traditional search backend' : '→ LLM search overview'}</div>
+    <div class="bar"><div style="width:${(r.prob_complex*100).toFixed(1)}%"></div></div>
+    <div class="meta">P(complex) = ${r.prob_complex}&nbsp;·&nbsp;${ms} ms round-trip</div>`;
+  const out = document.getElementById('out');
+  out.prepend(div);
+  while (out.children.length > 6) out.lastChild.remove();
+}
+</script>
