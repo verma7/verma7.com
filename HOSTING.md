@@ -104,6 +104,31 @@ The firewall rules for the `http-server`/`https-server` tags (ports 80/443)
 already exist in the project. DNS needs no changes as long as the reserved IP
 `verma7-web-ip` is reused.
 
+## Query-router demo service
+
+`/research/query-routing/demo/` calls `GET /classify?q=...`, which Caddy
+reverse-proxies to a local service (added 2026-07-23):
+
+| Component | Value |
+|---|---|
+| Service | `query-router.service` (systemd, `Restart=always`, `MemoryMax=450M`) |
+| App | `/opt/query-router/vm_server.py` — Python stdlib HTTP on `127.0.0.1:8642` |
+| Model | int8 ONNX export of a fine-tuned DistilBERT (`/opt/query-router/model.int8.onnx`, 64 MB) |
+| Deps | venv at `/opt/query-router/venv` (onnxruntime, tokenizers, numpy — no torch) |
+| Caddy | `reverse_proxy /classify* 127.0.0.1:8642` in the main site block |
+
+Source and training pipeline live in the local `Fable/query-classifier` repo on
+the MacBook (deploy artifacts built by `src/…` + `deploy/`). To update the model:
+re-export ONNX, `gcloud compute scp` the new `model.int8.onnx` + `tokenizer/` to
+`/opt/query-router/`, then `sudo systemctl restart query-router`.
+
+```bash
+# health check
+curl -s "https://verma7.com/classify?q=best+tv"
+# service logs
+sudo journalctl -u query-router --since "1 hour ago"
+```
+
 ## History / legacy
 
 - Previously served via a Cloudflare Tunnel (`26fce452-…cfargotunnel.com`);
