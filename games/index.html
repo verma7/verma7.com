@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Games — verma7.com</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "Arial Rounded MT Bold", "Comic Sans MS", -apple-system, "Helvetica Neue", sans-serif;
+    background: linear-gradient(160deg,#7ecbff 0%,#b3e5ff 45%,#d9f4ff 100%);
+    min-height:100vh; color:#1e3a5f; padding:32px 20px;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  h1 { font-size:clamp(32px,6vw,52px); color:#0b4f8a; text-shadow:0 3px 0 rgba(255,255,255,.7); margin-bottom:6px; }
+  .subtitle { color:#2a6da8; margin-bottom:28px; font-size:clamp(15px,2.5vw,20px); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,320px)); gap:20px; justify-content:center; width:100%; max-width:1000px; }
+  a.card {
+    background:#fff; border-radius:26px; padding:26px 18px 22px; text-align:center;
+    box-shadow:0 8px 0 rgba(30,80,140,.15); text-decoration:none; color:inherit;
+    transition:transform .12s;
+  }
+  a.card:hover { transform:translateY(-3px); }
+  a.card:active { transform:scale(.97); }
+  .emoji { font-size:64px; line-height:1.1; }
+  .name { font-size:24px; font-weight:bold; color:#0b4f8a; margin:10px 0 6px; }
+  .desc { font-size:15px; color:#3a729f; line-height:1.4; }
+  .home { margin-top:36px; color:#5a86ad; font-size:14px; }
+  .home a { color:#2a6da8; }
+</style>
+</head>
+<body>
+  <h1>🎮 Games</h1>
+  <div class="subtitle">Little games for little explorers</div>
+  <div class="grid">
+    <a class="card" href="/games/geo-adventure/">
+      <div class="emoji">🌍</div>
+      <div class="name">Geo Adventure</div>
+      <div class="desc">A talking geography tutor! Explore planets, continents, countries and US states — then take the quiz to earn stars. Best on an iPad with the sound on.</div>
+    </a>
+  </div>
+  <div class="home"><a href="/">← back to verma7.com</a></div>
+</body>
+</html>
