@@ -1,0 +1,418 @@
+<meta charset="utf-8">
+<title>Co-Designing MDS Erasure Codes Across GF(2³)–GF(2⁸)</title>
+<style>
+.vz{
+  color-scheme:light;
+  --surface-1:#fcfcfb; --page:#f9f9f7; --ink:#0b0b0b; --ink2:#52514e;
+  --muted:#898781; --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+  --seq100:#cde2fb; --seq250:#86b6ef; --seq400:#3987e5; --seq550:#1c5cab; --seq700:#0d366b;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])) .vz{
+    color-scheme:dark;
+    --surface-1:#1a1a19; --page:#0d0d0d; --ink:#ffffff; --ink2:#c3c2b7;
+    --muted:#898781; --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+  }
+}
+:root[data-theme="dark"] .vz{
+  color-scheme:dark;
+  --surface-1:#1a1a19; --page:#0d0d0d; --ink:#ffffff; --ink2:#c3c2b7;
+  --muted:#898781; --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.6}
+.vz{background:var(--page);color:var(--ink);min-height:100vh}
+.wrap{max-width:960px;margin:0 auto;padding:2.6rem 1.2rem 5rem}
+.eyebrow{font-size:.72rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink2);font-weight:600}
+h1{font-size:1.9rem;line-height:1.25;margin:.35rem 0 .5rem;text-wrap:balance}
+.meta{color:var(--ink2);font-size:.9rem;margin-bottom:1.8rem}
+h2{font-size:1.28rem;margin:2.6rem 0 .7rem;text-wrap:balance}
+h3{font-size:1.02rem;margin:1.5rem 0 .45rem}
+p{margin:.7rem 0;max-width:72ch}
+code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.85em;
+  background:var(--surface-1);border:1px solid var(--ring);border-radius:3px;
+  padding:.06em .3em}
+pre{background:var(--surface-1);border:1px solid var(--ring);border-radius:6px;
+  padding:.8rem 1rem;overflow-x:auto;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:.83rem;line-height:1.5}
+pre code{border:none;background:none;padding:0}
+.tiles{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.4rem 0}
+.tile{flex:1 1 200px;background:var(--surface-1);border:1px solid var(--ring);
+  border-radius:8px;padding:.85rem 1rem}
+.tile .v{font-size:1.55rem;font-weight:650}
+.tile .l{font-size:.8rem;color:var(--ink2);line-height:1.35;margin-top:.15rem}
+.steps{counter-reset:st;display:grid;gap:.55rem;margin:.9rem 0;padding:0;list-style:none}
+.steps li{background:var(--surface-1);border:1px solid var(--ring);border-radius:8px;
+  padding:.65rem .9rem .65rem 3rem;position:relative;max-width:none}
+.steps li::before{counter-increment:st;content:counter(st);position:absolute;
+  left:.9rem;top:.62rem;width:1.45rem;height:1.45rem;border-radius:50%;
+  background:var(--s1);color:#fff;font-weight:650;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center}
+.card{background:var(--surface-1);border:1px solid var(--ring);border-radius:10px;
+  padding:1rem 1.1rem;margin:1rem 0}
+.ctitle{font-weight:650;font-size:.95rem;margin-bottom:.15rem}
+.csub{font-size:.8rem;color:var(--ink2);margin-bottom:.6rem}
+.seg{display:flex;gap:.35rem;flex-wrap:wrap;margin:.4rem 0 .8rem}
+.seg button{font:inherit;font-size:.83rem;padding:.28rem .7rem;border-radius:999px;
+  border:1px solid var(--ring);background:transparent;color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--s1);border-color:var(--s1);
+  color:#fff;font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.seg .lab{font-size:.78rem;color:var(--muted);align-self:center;margin-right:.2rem;
+  text-transform:uppercase;letter-spacing:.07em}
+.legend{display:flex;gap:.9rem;flex-wrap:wrap;font-size:.8rem;color:var(--ink2);
+  margin:.4rem 0 .2rem}
+.legend .it{display:flex;align-items:center;gap:.35rem}
+.legend .sw{width:14px;height:4px;border-radius:2px}
+.chartbox{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--surface-1);
+  border:1px solid var(--ring);box-shadow:0 2px 10px rgba(0,0,0,.14);
+  border-radius:6px;padding:.4rem .6rem;font-size:.78rem;line-height:1.45;
+  display:none;z-index:5;min-width:130px}
+.tip b{font-variant-numeric:tabular-nums}
+.tip .row{display:flex;align-items:center;gap:.35rem}
+.tip .dot{width:8px;height:8px;border-radius:50%}
+.hm{display:grid;gap:2px;margin-top:.4rem}
+.hm .cell,.hm .hd{height:34px;display:flex;align-items:center;justify-content:center;
+  font-size:.76rem;border-radius:4px;font-variant-numeric:tabular-nums}
+.hm .hd{color:var(--muted);background:none}
+.hm .cell{color:#fff;cursor:default}
+.hm .cell.empty{background:none;border:1px dashed var(--grid);color:var(--muted)}
+.hm .cell.lite{color:var(--ink)}
+.tablebox{overflow-x:auto;margin-top:.5rem;max-height:430px;overflow-y:auto;
+  border:1px solid var(--ring);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.8rem;background:var(--surface-1)}
+th{position:sticky;top:0;background:var(--surface-1);text-align:right;color:var(--ink2);
+  font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;
+  padding:.5rem .6rem;border-bottom:1.5px solid var(--axis);user-select:none;
+  white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th .arr{font-size:.65rem}
+td{padding:.34rem .6rem;border-bottom:1px solid var(--grid);text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.best td{font-weight:650}
+.ok{color:var(--s6);font-weight:600}
+.note{border-left:3px solid var(--s2);background:var(--surface-1);
+  padding:.6rem .9rem;margin:1rem 0;font-size:.92rem;max-width:none}
+.tbl2{overflow-x:auto;margin:.8rem 0}
+.tbl2 table{background:none;font-size:.87rem}
+.tbl2 th{position:static;cursor:default}
+a{color:var(--s1)}
+@media (prefers-reduced-motion: no-preference){
+  .seg button{transition:background .12s}
+}
+</style>
+<div class="vz"><div class="wrap">
+
+<div class="eyebrow">Research report · rs-codesign benchmark</div>
+<h1>Co-Designing MDS Erasure Codes Across GF(2³)–GF(2⁸)</h1>
+<div class="meta">Schedule-aware search over six binary fields · 117 machine-verified code shapes ·
+C++ pipeline (~1,000 lines) · July 2026 · code &amp; data:
+<a href="https://github.com/verma7/rs-codesign-cpp">github.com/verma7/rs-codesign-cpp</a></div>
+
+<div class="tiles">
+<div class="tile"><div class="v">117</div><div class="l">code shapes co-designed — every (k, r) ∈ {4…200} × {2…11} that fits each field, n = 3…8</div></div>
+<div class="tile"><div class="v">117 / 117</div><div class="l">shapes where the smallest admissible field gave the cheapest encoder (per data bit)</div></div>
+<div class="tile"><div class="v">3.824</div><div class="l">XORs per data bit for RS(108+4) in GF(2⁷) — beating GF(2⁸) co-design (4.089) and certified permutation codes (4.030)</div></div>
+</div>
+
+<h2>1 · Problem</h2>
+<p>A systematic MDS erasure code with generator <code>[I | Pᵀ]</code> protects k data symbols with
+r parity symbols such that any k of the k+r survive-and-decode. For XOR-engine encoders
+(bit-matrix software, FPGA/ASIC), each GF(2ⁿ) entry of the parity block P expands into an
+n×n binary matrix, and the encoder's true cost is the <strong>scheduled XOR count</strong> of that
+(n·r)×(n·k) bit-matrix after common-subexpression elimination — not the matrix's one-bit count,
+which earlier experiments showed is only a proxy. The question here: for each code shape (k, r),
+which field, which polynomial, which matrix — and how cheap can the encoder get?</p>
+
+<h2>2 · Background</h2>
+<p>P must be <em>superregular</em> (every square submatrix nonsingular) for the code to be MDS.
+Generalized Cauchy matrices P<sub>ij</sub> = u<sub>i</sub>v<sub>j</sub>/(x<sub>i</sub>⊕y<sub>j</sub>)
+guarantee this by construction at any size, which matters because exhaustive verification explodes
+combinatorially (≈10¹⁵ minors at (108,11)). Within the Cauchy family, three levers change the
+bit-level cost without touching the MDS guarantee: the field polynomial, the evaluation points,
+and per-row/column scalars. Two further facts drive the design: scheduling (Paar CSE + a
+row-MST hybrid) recovers 30–65% of naive XORs, and — the headline of the earlier session —
+optimizing the matrix <em>through</em> the scheduler beats optimizing it for sparseness.
+This benchmark adds the last free variable: the field size n itself.</p>
+
+<h2>3 · Algorithm</h2>
+<ol class="steps">
+<li><strong>Field scan.</strong> Enumerate all irreducible degree-n polynomials (2, 3, 6, 9, 18, 30
+for n = 3…8; a subfield-gcd test is required at n = 6, where the naive checkpoint test admits
+reducibles). Keep the polynomial whose scaled-Cauchy seed is lightest.</li>
+<li><strong>Point optimization.</strong> Hill-climb the Cauchy x-points with column-optimal
+y-selection under the one-bit metric, then ones-greedy row/column scaling — a fast warm start.</li>
+<li><strong>Scheduled sweeps.</strong> Coordinate descent over all r + k scalar knobs; each knob
+tests every field scalar, evaluated <em>exactly</em> as min(Paar-CSE, MST-hybrid) XORs on the
+expanded bit-matrix — a bucket-queue scheduler with native popcounts, batched over 16 threads —
+iterated to fixpoint.</li>
+<li><strong>GA refinement.</strong> Leftover budget runs a genetic algorithm over
+(y-points, column scalars, row scalars) with column-gene crossover and duplicate repair;
+every individual stays inside the Cauchy family, hence MDS.</li>
+<li><strong>Verification.</strong> Shapes with ≤ 500k minors get exhaustive superregularity
+checks (60 of 117 passed, zero failures); the rest are MDS by construction.</li>
+</ol>
+
+<h2>4 · Results</h2>
+<p><strong>The smallest field that fits is always the right field.</strong> In all 117 runs,
+the minimum-n field admitting the shape (k + r ≤ 2ⁿ) produced the cheapest encoder per data bit —
+usually by 10–25% over GF(2⁸). Mechanism: halving the symbol width halves the bit-matrix rows per
+parity symbol, which densifies input-pair co-occurrence, which is precisely what CSE converts into
+shared temporaries. The loss of point-selection freedom in a crowded small field never outweighed it.</p>
+<p><strong>r = 2 is solved.</strong> Every RAID-6-shaped code landed exactly on its no-sharing
+floor r(k−1)/k — e.g. (4,2) at 1.500 XORs/bit in every field from GF(2³) up.</p>
+<p><strong>Small fields dive below the no-sharing floor.</strong> (4,11) in GF(2⁴) costs 6.56 XORs/bit
+against a floor of 8.25 — cross-output sharing at work; per-row lower-bound arguments do not
+bind scheduled encoders.</p>
+<p><strong>Three prior champions retired.</strong> RS(108+4): GF(2⁷) at 3.824 XORs/bit beats both the
+GF(2⁸) co-design (4.089) and the certified permutation-power code (4.030). RS(108+5): 4.813 vs 4.873
+from the earlier Python pipeline. RS(10+4): GF(2⁴) at 3.100 beats even the free-search GF(2⁸)
+champion (3.613) — the field-size lever outweighs the matrix-family lever.</p>
+<div class="note"><strong>Scope note.</strong> These costs matter for XOR-engine encoders.
+SIMD table-lookup encoders (PSHUFB/GFNI) are insensitive to all of this. And 46 of the 48 GF(2⁸)
+grid shapes (including k = 200, which only GF(2⁸) can host) were not run before termination —
+reproducible via <code>./rs-codesign grid</code>.</div>
+
+<h2>5 · Interactive explorer</h2>
+
+<div class="card">
+<div class="ctitle">Scheduled XORs per data bit, by parity count and field</div>
+<div class="csub">Lower is better. Choose a data-symbol count k; each line is one field GF(2ⁿ).
+The dashed gray line is the <strong>no-sharing floor</strong> r(k−1)/k — the cost if every parity bit
+were computed independently; scheduled encoders can legitimately dip below it via cross-output
+sharing. Hover for exact values and distance to the floor.</div>
+<div class="seg" id="ksel" role="group" aria-label="data symbols k"><span class="lab">k =</span></div>
+<div class="legend" id="legend"></div>
+<div class="chartbox" id="linebox">
+  <svg id="linechart" width="100%" viewBox="0 0 900 380" role="img"
+       aria-label="XORs per data bit versus parity count, one line per field"></svg>
+  <div class="tip" id="tip1"></div>
+</div>
+</div>
+
+<div class="card">
+<div class="ctitle">The same data as a field × parity heatmap</div>
+<div class="csub">Sequential shading (darker = more XORs per data bit) for the selected k.
+The lightest row is consistently the smallest field that fits.</div>
+<div class="hm" id="heatmap"></div>
+</div>
+
+<div class="card">
+<div class="ctitle">All 117 runs</div>
+<div class="csub">Click a column header to sort. Bold rows are the best field for their (k, r).
+“ver” = exhaustive MDS verification (others are Cauchy-guaranteed).</div>
+<div class="seg" id="tfilter"><span class="lab">field</span></div>
+<div class="tablebox"><table id="tbl">
+<thead><tr id="thr"></tr></thead><tbody id="tbody"></tbody>
+</table></div>
+</div>
+
+<h2>6 · Reproduce</h2>
+<pre><code>cd rs-codesign-cpp
+make            # clang++ -O3, no dependencies
+make test       # field self-tests + exhaustive MDS checks
+./rs-codesign grid              # full matrix -> results.csv (this dataset)
+./rs-codesign single 7 108 11 90   # one shape, 90 s budget</code></pre>
+<p class="meta">Data: <code>results.csv</code> (117 rows) · log: <code>grid-run.log</code> ·
+source &amp; full results: <a href="https://github.com/verma7/rs-codesign-cpp">github.com/verma7/rs-codesign-cpp</a></p>
+<p class="meta" style="margin-top:1.4rem"><a href="/research/">← All research</a></p>
+
+</div></div>
+
+<script>
+const DATA = [[3,"0x00b",4,2,30,20,18,1.5,1,1,4.0],[3,"0x00d",4,3,48,27,23,1.9167,1,1,4.0],[3,"0x00b",4,4,72,38,30,2.5,1,1,4.0],[3,"0x00b",6,2,48,33,30,1.6667,1,1,4.0],[4,"0x013",4,2,38,25,24,1.5,1,1,4.0],[4,"0x013",4,3,64,37,32,2.0,1,1,4.0],[4,"0x013",4,4,92,44,43,2.6875,1,1,4.0],[4,"0x019",4,5,118,62,55,3.4375,1,0,4.0],[4,"0x013",4,8,206,96,82,5.125,1,0,4.0],[4,"0x013",4,11,296,123,105,6.5625,1,0,4.4],[4,"0x013",6,2,60,43,40,1.6667,1,1,4.0],[4,"0x013",6,3,98,60,52,2.1667,1,1,4.0],[4,"0x013",6,4,146,78,70,2.9167,1,1,4.0],[4,"0x013",6,5,196,101,86,3.5833,1,1,4.0],[4,"0x013",6,8,328,152,134,5.5833,1,0,4.8],[4,"0x013",10,2,110,76,72,1.8,1,1,4.0],[4,"0x013",10,3,185,106,98,2.45,1,1,4.0],[4,"0x013",10,4,260,132,124,3.1,1,1,4.0],[4,"0x013",10,5,339,173,156,3.9,1,1,5.0],[5,"0x025",4,2,46,31,30,1.5,1,1,4.0],[5,"0x029",4,3,74,47,41,2.05,1,1,4.0],[5,"0x025",4,4,104,64,56,2.8,1,1,4.0],[5,"0x025",4,5,136,79,68,3.4,1,0,4.0],[5,"0x025",4,8,265,126,117,5.85,1,0,4.0],[5,"0x025",4,11,387,180,157,7.85,1,0,5.5],[5,"0x025",6,2,72,53,50,1.6667,1,1,4.0],[5,"0x025",6,3,119,74,68,2.2667,1,1,4.0],[5,"0x025",6,4,172,100,93,3.1,1,1,4.0],[5,"0x025",6,5,230,130,121,4.0333,1,1,4.0],[5,"0x025",6,8,416,208,195,6.5,1,0,6.0],[5,"0x025",6,11,602,278,267,8.9,1,0,8.3],[5,"0x025",10,2,130,95,90,1.8,1,1,4.0],[5,"0x025",10,3,216,134,124,2.48,1,1,4.0],[5,"0x025",10,4,314,174,168,3.36,1,1,5.0],[5,"0x025",10,5,421,230,210,4.2,1,1,6.3],[5,"0x025",10,8,734,356,349,6.98,1,1,10.0],[5,"0x025",10,11,1068,494,468,9.36,1,0,13.8],[5,"0x025",16,2,228,164,150,1.875,1,1,4.0],[5,"0x025",16,3,381,230,208,2.6,1,1,6.0],[5,"0x025",16,4,532,291,280,3.5,1,1,8.0],[5,"0x025",16,5,705,365,349,4.3625,1,1,10.0],[5,"0x025",16,8,1240,546,539,6.7375,1,0,16.0],[5,"0x029",16,11,1803,797,748,9.35,1,0,22.0],[6,"0x043",4,2,54,39,36,1.5,1,1,4.0],[6,"0x061",4,3,96,61,49,2.0417,1,1,4.0],[6,"0x043",4,4,144,75,70,2.9167,1,1,4.0],[6,"0x049",4,5,185,105,95,3.9583,1,0,4.0],[6,"0x061",4,8,330,171,150,6.25,1,0,4.8],[6,"0x043",4,11,494,237,217,9.0417,1,0,6.6],[6,"0x049",6,2,83,62,60,1.6667,1,1,4.0],[6,"0x049",6,3,158,104,97,2.6944,1,1,4.0],[6,"0x061",6,4,223,138,128,3.5556,1,1,4.0],[6,"0x043",6,5,291,164,156,4.3333,1,1,4.5],[6,"0x061",6,8,535,277,255,7.0833,1,0,7.2],[6,"0x061",6,11,778,373,350,9.7222,1,0,9.9],[6,"0x043",10,2,150,113,109,1.8167,1,1,4.0],[6,"0x049",10,3,274,176,158,2.6333,1,1,4.5],[6,"0x049",10,4,404,246,229,3.8167,1,1,6.0],[6,"0x061",10,5,535,295,282,4.7,1,1,7.5],[6,"0x049",10,8,969,483,456,7.6,1,1,12.0],[6,"0x043",10,11,1388,652,636,10.6,1,0,16.6],[6,"0x043",16,2,262,191,181,1.8854,1,1,4.8],[6,"0x043",16,3,470,284,275,2.8646,1,1,7.2],[6,"0x061",16,4,681,386,365,3.8021,1,1,9.6],[6,"0x049",16,5,911,483,472,4.9167,1,1,12.0],[6,"0x043",16,8,1592,759,738,7.6875,1,0,19.2],[6,"0x043",16,11,2331,1050,1030,10.7292,1,0,26.4],[6,"0x043",32,2,590,388,381,1.9844,1,1,9.6],[6,"0x043",32,3,1021,569,552,2.875,1,1,14.4],[6,"0x043",32,4,1468,737,709,3.6927,1,1,19.2],[6,"0x043",32,5,1946,934,928,4.8333,1,1,24.1],[6,"0x043",32,8,3368,1508,1485,7.7344,1,0,38.4],[6,"0x061",32,11,4955,2076,2053,10.6927,1,0,52.8],[7,"0x083",4,2,62,47,42,1.5,1,1,4.0],[7,"0x0c1",4,3,110,73,65,2.3214,1,1,4.0],[7,"0x083",4,4,153,99,92,3.2857,1,1,4.0],[7,"0x083",4,5,210,123,118,4.2143,1,0,4.0],[7,"0x083",4,8,378,196,192,6.8571,1,0,5.6],[7,"0x0c1",4,11,555,270,256,9.1429,1,0,7.7],[7,"0x083",6,2,96,75,70,1.6667,1,1,4.0],[7,"0x083",6,3,175,120,108,2.5714,1,1,4.0],[7,"0x083",6,4,240,155,147,3.5,1,1,4.2],[7,"0x083",6,5,338,192,187,4.4524,1,1,5.3],[7,"0x0c1",6,8,605,326,319,7.5952,1,0,8.4],[7,"0x083",6,11,908,449,441,10.5,1,0,11.6],[7,"0x083",10,2,170,135,126,1.8,1,1,4.0],[7,"0x083",10,3,307,206,204,2.9143,1,1,5.3],[7,"0x083",10,4,440,266,264,3.7714,1,1,7.0],[7,"0x083",10,5,597,339,332,4.7429,1,1,8.8],[7,"0x083",10,8,1083,584,570,8.1429,1,1,14.0],[7,"0x083",10,11,1629,802,786,11.2286,1,0,19.3],[7,"0x083",16,2,296,223,212,1.8929,1,1,5.6],[7,"0x083",16,3,523,330,324,2.8929,1,1,8.4],[7,"0x083",16,4,753,437,429,3.8304,1,1,11.2],[7,"0x083",16,5,1013,556,547,4.8839,1,1,14.0],[7,"0x083",16,8,1848,929,905,8.0804,1,0,22.4],[7,"0x0c1",16,11,2747,1301,1274,11.375,1,0,30.8],[7,"0x083",32,2,660,463,447,1.9955,1,1,11.2],[7,"0x083",32,3,1174,679,655,2.9241,1,1,16.8],[7,"0x083",32,4,1676,910,895,3.9955,1,1,22.4],[7,"0x083",32,5,2219,1124,1104,4.9286,1,1,28.1],[7,"0x083",32,8,4032,1877,1844,8.2321,1,0,44.8],[7,"0x083",32,11,5920,2540,2534,11.3125,1,0,61.6],[7,"0x089",64,2,1482,920,903,2.0156,1,1,22.4],[7,"0x083",64,3,2602,1339,1314,2.933,1,1,33.6],[7,"0x083",64,4,3704,1755,1716,3.8304,1,0,44.8],[7,"0x083",64,5,4934,2228,2202,4.9152,1,0,56.0],[7,"0x083",64,8,8456,3486,3450,7.7009,1,0,75.0],[7,"0x083",64,11,12641,4918,4890,10.915,1,0,75.0],[7,"0x089",108,2,2774,1563,1542,2.0397,1,1,37.8],[7,"0x083",108,3,4804,2224,2190,2.8968,1,1,56.8],[7,"0x083",108,4,6872,2941,2891,3.8241,1,0,75.0],[7,"0x083",108,5,9016,3676,3639,4.8135,1,0,75.1],[7,"0x083",108,8,15464,5805,5775,7.6389,0,0,55.7],[7,"0x0c1",108,11,22504,8128,8128,10.7513,0,0,202.3],[8,"0x187",4,2,80,56,54,1.6875,1,1,4.0],[8,"0x14d",4,3,139,90,90,2.8125,0,1,4.8]];
+const COLS = ['n','poly','k','r','ones','sched seed','sched final','X/bit','floor','Δ floor','conv','ver','time s'];
+const floorOf = (k,r) => r*(k-1)/k;
+const getVal = (d,i) => i<8 ? d[i] : i===8 ? floorOf(d[2],d[3])
+  : i===9 ? (d[7]/floorOf(d[2],d[3])-1)*100 : d[i-2];
+const SER = {3:'--s1',4:'--s2',5:'--s3',6:'--s4',7:'--s5',8:'--s6'};
+const css = v => getComputedStyle(document.querySelector('.vz')).getPropertyValue(v).trim();
+const KS = [...new Set(DATA.map(d=>d[2]))].sort((a,b)=>a-b);
+const RS = [...new Set(DATA.map(d=>d[3]))].sort((a,b)=>a-b);
+const NS = [3,4,5,6,7,8];
+let curK = 10;
+
+// best-per-shape set for table bolding
+const bestSet = new Set();
+for (const k of KS) for (const r of RS) {
+  let b=null;
+  for (const d of DATA) if (d[2]===k && d[3]===r && (!b || d[7]<b[7])) b=d;
+  if (b) bestSet.add(b);
+}
+
+// ---- k selector ----
+const ksel = document.getElementById('ksel');
+for (const k of KS) {
+  const b=document.createElement('button');
+  b.textContent=k; b.setAttribute('aria-pressed', k===curK);
+  b.onclick=()=>{curK=k; ksel.querySelectorAll('button').forEach(x=>
+    x.setAttribute('aria-pressed', +x.textContent===k)); draw();};
+  ksel.appendChild(b);
+}
+
+// ---- legend ----
+const legend=document.getElementById('legend');
+function drawLegend(present){
+  legend.innerHTML='';
+  for (const n of NS){
+    if(!present.has(n)) continue;
+    const it=document.createElement('span'); it.className='it';
+    const sw=document.createElement('span'); sw.className='sw';
+    sw.style.background=css(SER[n]);
+    it.appendChild(sw); it.appendChild(document.createTextNode('GF(2^'+n+')'));
+    legend.appendChild(it);
+  }
+  const fl=document.createElement('span'); fl.className='it';
+  const sw=document.createElement('span'); sw.className='sw';
+  sw.style.background='none';
+  sw.style.borderTop='2px dashed '+css('--muted');
+  sw.style.height='0';
+  fl.appendChild(sw);
+  fl.appendChild(document.createTextNode('no-sharing floor r(k−1)/k'));
+  legend.appendChild(fl);
+}
+
+// ---- line chart ----
+const svg=document.getElementById('linechart'), tip=document.getElementById('tip1'),
+      box=document.getElementById('linebox');
+const Mx={l:52,r:20,t:14,b:34}, Wt=900, Ht=380;
+const X = r => Mx.l + (r-2)/(11-2)*(Wt-Mx.l-Mx.r);
+function draw(){
+  const rows=DATA.filter(d=>d[2]===curK);
+  const present=new Set(rows.map(d=>d[0]));
+  drawLegend(present);
+  const ymax=Math.max(...rows.map(d=>d[7]),
+                      ...RS.map(r=>floorOf(curK,r)))*1.08;
+  const Y=v=>Mx.t+(1-v/ymax)*(Ht-Mx.t-Mx.b);
+  let s='';
+  // grid + axes
+  const yticks=5;
+  for(let i=0;i<=yticks;i++){
+    const v=ymax*i/yticks, y=Y(v);
+    s+=`<line x1="${Mx.l}" y1="${y}" x2="${Wt-Mx.r}" y2="${y}" stroke="${css('--grid')}" stroke-width="1"/>`;
+    s+=`<text x="${Mx.l-8}" y="${y+4}" text-anchor="end" font-size="11" fill="${css('--muted')}">${v.toFixed(1)}</text>`;
+  }
+  for(const r of RS){
+    s+=`<text x="${X(r)}" y="${Ht-Mx.b+18}" text-anchor="middle" font-size="11" fill="${css('--muted')}">r=${r}</text>`;
+  }
+  s+=`<line x1="${Mx.l}" y1="${Ht-Mx.b}" x2="${Wt-Mx.r}" y2="${Ht-Mx.b}" stroke="${css('--axis')}" stroke-width="1"/>`;
+  s+=`<text x="${14}" y="${Mx.t+8}" font-size="11" fill="${css('--muted')}" transform="rotate(-90 14 ${Mx.t+8})" text-anchor="end">XORs / data bit</text>`;
+  // no-sharing floor reference (dashed, neutral ink — not a series)
+  const fpath=RS.map((r,i)=>(i?'L':'M')+X(r)+' '+Y(floorOf(curK,r))).join(' ');
+  s+=`<path d="${fpath}" fill="none" stroke="${css('--muted')}" stroke-width="1.5" stroke-dasharray="5,4"/>`;
+  for(const n of NS){
+    const pts=rows.filter(d=>d[0]===n).sort((a,b)=>a[3]-b[3]);
+    if(!pts.length) continue;
+    const col=css(SER[n]);
+    const path=pts.map((d,i)=>(i?'L':'M')+X(d[3])+' '+Y(d[7])).join(' ');
+    s+=`<path d="${path}" fill="none" stroke="${col}" stroke-width="2"/>`;
+    for(const d of pts)
+      s+=`<circle cx="${X(d[3])}" cy="${Y(d[7])}" r="3.5" fill="${col}" stroke="${css('--surface-1')}" stroke-width="2"/>`;
+  }
+  s+=`<line id="xh" x1="0" y1="${Mx.t}" x2="0" y2="${Ht-Mx.b}" stroke="${css('--axis')}" stroke-width="1" stroke-dasharray="3,3" visibility="hidden"/>`;
+  s+=`<rect x="${Mx.l}" y="${Mx.t}" width="${Wt-Mx.l-Mx.r}" height="${Ht-Mx.t-Mx.b}" fill="transparent" id="ov"/>`;
+  svg.innerHTML=s;
+  drawHeat(); drawTable();
+  const ov=svg.querySelector('#ov'), xh=svg.querySelector('#xh');
+  ov.onmousemove=e=>{
+    const rect=svg.getBoundingClientRect();
+    const px=(e.clientX-rect.left)*Wt/rect.width;
+    let br=RS[0];
+    for(const r of RS) if(Math.abs(X(r)-px)<Math.abs(X(br)-px)) br=r;
+    xh.setAttribute('x1',X(br)); xh.setAttribute('x2',X(br));
+    xh.setAttribute('visibility','visible');
+    const hits=rows.filter(d=>d[3]===br).sort((a,b)=>a[0]-b[0]);
+    if(!hits.length){tip.style.display='none';return;}
+    const fv=floorOf(curK,br);
+    let h=`<div style="color:${css('--ink2')};margin-bottom:2px">k=${curK}, r=${br} · floor ${fv.toFixed(3)}</div>`;
+    for(const d of hits){
+      const dpc=(d[7]/fv-1)*100;
+      h+=`<div class="row"><span class="dot" style="background:${css(SER[d[0]])}"></span>GF(2^${d[0]}): <b>${d[7].toFixed(3)}</b>&nbsp;(${dpc>=0?'+':''}${dpc.toFixed(1)}%, ${d[6]} X)</div>`;
+    }
+    tip.innerHTML=h; tip.style.display='block';
+    const bw=box.getBoundingClientRect();
+    let tx=(e.clientX-bw.left)+14, ty=(e.clientY-bw.top)+10;
+    if(tx+170>bw.width) tx-=190;
+    tip.style.left=tx+'px'; tip.style.top=ty+'px';
+  };
+  ov.onmouseleave=()=>{tip.style.display='none'; xh.setAttribute('visibility','hidden');};
+}
+
+// ---- heatmap (sequential blue ramp) ----
+const RAMP=['--seq100','--seq250','--seq400','--seq550','--seq700'];
+function drawHeat(){
+  const hm=document.getElementById('heatmap');
+  hm.style.gridTemplateColumns=`70px repeat(${RS.length},1fr)`;
+  const rows=DATA.filter(d=>d[2]===curK);
+  const vals=rows.map(d=>d[7]);
+  const lo=Math.min(...vals), hi=Math.max(...vals);
+  let h='<div class="hd"></div>';
+  for(const r of RS) h+=`<div class="hd">r=${r}</div>`;
+  h+='<div class="hd" style="font-style:italic">floor</div>';
+  for(const r of RS)
+    h+=`<div class="hd" style="font-style:italic">${floorOf(curK,r).toFixed(2)}</div>`;
+  for(const n of NS){
+    const any=rows.some(d=>d[0]===n);
+    if(!any) continue;
+    h+=`<div class="hd">GF(2^${n})</div>`;
+    for(const r of RS){
+      const d=rows.find(x=>x[0]===n&&x[3]===r);
+      if(!d){h+='<div class="cell empty">–</div>';continue;}
+      const t=hi>lo?(d[7]-lo)/(hi-lo):0;
+      const idx=Math.min(RAMP.length-1,Math.floor(t*RAMP.length));
+      const lite=idx<2;
+      h+=`<div class="cell${lite?' lite':''}" style="background:${css(RAMP[idx])}" title="GF(2^${n}) k=${curK} r=${r}: ${d[7].toFixed(3)} XORs/bit (${d[6]} XORs)">${d[7].toFixed(2)}</div>`;
+    }
+  }
+  hm.innerHTML=h;
+}
+
+// ---- sortable table ----
+let sortCol=7, sortDir=1, nFilter=0;
+const thr=document.getElementById('thr');
+COLS.forEach((c,i)=>{
+  const th=document.createElement('th');
+  th.textContent=c;
+  th.onclick=()=>{if(sortCol===i)sortDir*=-1;else{sortCol=i;sortDir=1;}drawTable();};
+  thr.appendChild(th);
+});
+const tf=document.getElementById('tfilter');
+const allB=document.createElement('button');
+allB.textContent='all'; allB.setAttribute('aria-pressed','true');
+allB.onclick=()=>{nFilter=0;tf.querySelectorAll('button').forEach(x=>
+  x.setAttribute('aria-pressed',x===allB));drawTable();};
+tf.appendChild(allB);
+for(const n of NS){
+  const b=document.createElement('button');
+  b.textContent='2^'+n; b.setAttribute('aria-pressed','false');
+  b.onclick=()=>{nFilter=n;tf.querySelectorAll('button').forEach(x=>
+    x.setAttribute('aria-pressed',x===b));drawTable();};
+  tf.appendChild(b);
+}
+function drawTable(){
+  thr.querySelectorAll('th').forEach((th,i)=>{
+    th.innerHTML=COLS[i]+(i===sortCol?` <span class="arr">${sortDir>0?'▲':'▼'}</span>`:'');
+  });
+  const rows=DATA.filter(d=>!nFilter||d[0]===nFilter).slice().sort((a,b)=>{
+    const av=getVal(a,sortCol),bv=getVal(b,sortCol);
+    return (av<bv?-1:av>bv?1:0)*sortDir;
+  });
+  let h='';
+  for(const d of rows){
+    const fv=floorOf(d[2],d[3]), dpc=(d[7]/fv-1)*100;
+    h+=`<tr${bestSet.has(d)?' class="best"':''}><td>GF(2^${d[0]})</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td><td>${d[4]}</td><td>${d[5]}</td><td>${d[6]}</td><td>${d[7].toFixed(3)}</td><td>${fv.toFixed(3)}</td><td>${dpc>=0?'+':''}${dpc.toFixed(1)}%</td><td>${d[8]?'<span class="ok">✓</span>':'budget'}</td><td>${d[9]?'<span class="ok">✓</span>':'Cauchy'}</td><td>${d[10].toFixed(1)}</td></tr>`;
+  }
+  document.getElementById('tbody').innerHTML=h;
+}
+draw();
+// redraw on theme change so computed colors refresh
+new MutationObserver(()=>draw()).observe(document.documentElement,
+  {attributes:true,attributeFilter:['data-theme']});
+if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>draw());
+</script>
