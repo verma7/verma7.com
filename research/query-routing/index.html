@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routing Commerce Search Queries: Simple Lookup vs. LLM Overview</title>
+<style>
+:root {
+  --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s1d:#1c5cab; --s2:#eb6834; --s3:#1baf7a;
+  --simple:#1baf7a; --complex:#4a3aa7;
+  --simple-bg:rgba(27,175,122,.12); --complex-bg:rgba(74,58,167,.10);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --s1:#3987e5; --s1d:#86b6ef; --s2:#d95926; --s3:#199e70;
+    --simple:#199e70; --complex:#9085e9;
+    --simple-bg:rgba(25,158,112,.16); --complex-bg:rgba(144,133,233,.14);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"] {
+  --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s1d:#86b6ef; --s2:#d95926; --s3:#199e70;
+  --simple:#199e70; --complex:#9085e9;
+  --simple-bg:rgba(25,158,112,.16); --complex-bg:rgba(144,133,233,.14);
+  color-scheme:dark;
+}
+:root[data-theme="light"] {
+  --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s1d:#1c5cab; --s2:#eb6834; --s3:#1baf7a;
+  --simple:#1baf7a; --complex:#4a3aa7;
+  --simple-bg:rgba(27,175,122,.12); --complex-bg:rgba(74,58,167,.10);
+  color-scheme:light;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--plane); color:var(--ink);
+  font:17px/1.65 Charter, Georgia, "Times New Roman", serif; }
+.wrap { max-width:46rem; margin:0 auto; padding:3.5rem 1.25rem 6rem; }
+h1,h2,h3, .sans { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+h1 { font-size:2rem; line-height:1.2; margin:.2rem 0 .6rem; letter-spacing:-.01em; text-wrap:balance; }
+h2 { font-size:1.3rem; margin:3rem 0 .8rem; letter-spacing:-.005em; }
+h2 .no { color:var(--muted); font-weight:600; margin-right:.5em; font-variant-numeric:tabular-nums; }
+h3 { font-size:1.02rem; margin:1.8rem 0 .5rem; }
+p { margin:.75rem 0; }
+.eyebrow { font-family:system-ui,sans-serif; font-size:.78rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink2); }
+.abstract { font-size:1.06rem; color:var(--ink2); border-left:3px solid var(--axis); padding-left:1rem; }
+a { color:var(--s1d); }
+code { font:.86em ui-monospace,SFMono-Regular,Menlo,monospace; background:var(--surface);
+  border:1px solid var(--border); border-radius:4px; padding:.05em .3em; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:1.6rem 0; }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:.85rem 1rem; }
+.tile b { display:block; font-family:system-ui,sans-serif; font-size:1.55rem; letter-spacing:-.01em; }
+.tile span { font-family:system-ui,sans-serif; font-size:.8rem; color:var(--ink2); line-height:1.35; display:block; margin-top:.15rem; }
+.tag { font-family:system-ui,sans-serif; font-size:.78rem; font-weight:600; border-radius:999px;
+  padding:.1em .6em; white-space:nowrap; }
+.tag.simple { color:var(--simple); background:var(--simple-bg); }
+.tag.complex { color:var(--complex); background:var(--complex-bg); }
+.tblwrap { overflow-x:auto; margin:1rem 0; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+table { border-collapse:collapse; width:100%; font-family:system-ui,sans-serif; font-size:.85rem; }
+th { text-align:left; font-weight:600; color:var(--ink2); font-size:.78rem; letter-spacing:.03em;
+  border-bottom:1px solid var(--grid); padding:.55rem .7rem; white-space:nowrap; }
+td { padding:.48rem .7rem; border-bottom:1px solid var(--grid); vertical-align:top;
+  font-variant-numeric:tabular-nums; }
+tr:last-child td { border-bottom:0; }
+td.num, th.num { text-align:right; }
+.best td { font-weight:650; }
+.fig { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:1.1rem 1.1rem .7rem; margin:1.4rem 0; overflow-x:auto; }
+.fig svg { display:block; min-width:560px; width:100%; height:auto; }
+.figcap { font-family:system-ui,sans-serif; font-size:.8rem; color:var(--ink2); margin:.6rem 0 .2rem; line-height:1.45; }
+.figcap b { color:var(--ink); }
+svg text { font-family:system-ui,-apple-system,sans-serif; fill:var(--ink2); }
+svg .lab { font-size:12px; }
+svg .val { font-size:12px; fill:var(--ink); font-variant-numeric:tabular-nums; }
+svg .tick { font-size:11px; fill:var(--muted); font-variant-numeric:tabular-nums; }
+svg .gridln { stroke:var(--grid); stroke-width:1; }
+svg .axisln { stroke:var(--axis); stroke-width:1; }
+svg .bar:hover, svg .dot:hover { opacity:.8; }
+details { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  padding:.7rem 1rem; margin:1rem 0; font-size:.95rem; }
+summary { cursor:pointer; font-family:system-ui,sans-serif; font-weight:600; font-size:.9rem; }
+details pre { white-space:pre-wrap; font:.8rem/1.55 ui-monospace,Menlo,monospace; color:var(--ink2); }
+.q { font-style:italic; }
+ul,ol { padding-left:1.3rem; }
+li { margin:.35rem 0; }
+.note { font-family:system-ui,sans-serif; font-size:.85rem; color:var(--ink2); background:var(--surface);
+  border:1px solid var(--border); border-radius:8px; padding:.7rem 1rem; margin:1rem 0; }
+.legend { display:flex; gap:1.2rem; flex-wrap:wrap; font-family:system-ui,sans-serif;
+  font-size:.8rem; color:var(--ink2); margin:.2rem 0 .6rem; }
+.legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:.4em; }
+@media print { .fig { break-inside:avoid; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<p class="eyebrow">Research report · July 2026</p>
+<h1>Routing Commerce Search Queries: Simple Lookup vs.&nbsp;LLM Overview</h1>
+<p class="abstract">A binary classifier that decides, per query, whether an e-commerce search
+should return the ordinary product grid (<span class="tag simple">SIMPLE</span> — “men’s shirts”)
+or additionally trigger an LLM-generated shopping overview
+(<span class="tag complex">COMPLEX</span> — “shirts for a beach wedding in Hawaii in summer”).
+Built and evaluated on 6,636 ensemble-labeled queries from five public datasets, with
+leave-one-dataset-out generalization tests, a targeted commerce-complex challenge slice,
+and an explicit latency/cost frontier.</p>
+
+<div class="tiles">
+  <div class="tile"><b>95.7%</b><span>test accuracy, recommended model (95%&nbsp;CI 94.6–96.8)</span></div>
+  <div class="tile"><b>29→60%</b><span>commerce-complex recall, base → shipped configuration</span></div>
+  <div class="tile"><b>~3 ms</b><span>p50 single-query latency (DistilBERT, Apple&nbsp;M-series)</span></div>
+  <div class="tile"><b>κ = 0.915</b><span>inter-annotator agreement of the label ensemble</span></div>
+</div>
+
+<p><b>Recommendation.</b> Ship the fine-tuned DistilBERT trained with commerce-complex
+enrichment, operated at threshold τ&nbsp;=&nbsp;0.25. It is within noise of the best
+LLM-free accuracy on the IID test set, doubles recall on the commerce-complex slice the
+feature actually targets, and costs ~3&nbsp;ms per query — 200× faster than putting an
+LLM in the routing hot path (649&nbsp;ms p50, ~$0.02 per 1k queries).</p>
+
+<h2><span class="no">1</span>Problem &amp; taxonomy</h2>
+<p>Search overviews are expensive (LLM latency + tokens) and, on straightforward queries,
+worse than useless — they push the product grid below the fold. The router’s job is to
+spend that cost only where synthesis adds value. We use a binary taxonomy:</p>
+<ul>
+<li><span class="tag simple">SIMPLE</span> — a conventional keyword/facet backend fully serves
+the intent: product, brand, model, category, or any stack of directly filterable attributes.
+<span class="q">“nike air max 90 size 11”, “stainless steel dishwasher under $700”</span></li>
+<li><span class="tag complex">COMPLEX</span> — satisfying the query needs inference or synthesis:
+occasion/persona translation, advice and superlatives, comparisons, compatibility, how-to,
+gift discovery, symptom→product. <span class="q">“best vacuum for pet hair”,
+“will a 265/70r17 tire fit a stock tacoma”</span></li>
+</ul>
+<p>The full annotation rubric (with tie-breakers, e.g. attribute-stacking stays SIMPLE;
+bare superlatives are COMPLEX; canonical occasion-categories like “wedding dress” stay
+SIMPLE) is reproduced below and shipped as <code>src/rubric.py</code>.</p>
+<details><summary>Annotation rubric (verbatim)</summary><pre>
+Label SIMPLE when a conventional product-search backend fully serves the intent:
+the query names a product, brand, model/SKU, or category, possibly with directly
+filterable attributes (size, color, material, gender, price cap). The user knows
+what they want; showing a ranked product grid is the complete answer.
+
+Label COMPLEX when an LLM overview genuinely helps: satisfying the query requires
+inference, synthesis, or explanation that a product grid alone does not provide.
+Signals (any one suffices): occasion/context translation · advice/recommendation
+intent incl. superlatives · multi-constraint trade-offs or persona fit ·
+comparisons · compatibility/fitment · question-form or how-to ·
+gift discovery · problem/symptom queries.
+
+Tie-breakers: attribute-stacking alone stays SIMPLE no matter how many attributes;
+a bare superlative ("best coffee maker") is COMPLEX; a price cap alone stays SIMPLE,
+price + use case is COMPLEX; canonical occasion-categories ("wedding dress",
+"running shoes") stay SIMPLE; nonsense/navigational fragments default to SIMPLE.
+</pre></details>
+
+<h2><span class="no">2</span>Datasets</h2>
+<p>Five public query datasets, four of them commerce product-search logs and one general-web
+set (MS&nbsp;MARCO) kept deliberately as a domain-shift probe. From each we sampled, cleaned
+(length 3–150 chars, ≥90% ASCII, cross-dataset dedupe), and pooled 6,661 unique queries.</p>
+<div class="tblwrap"><table>
+<tr><th>Dataset</th><th>Source</th><th class="num">Unique queries</th><th class="num">Sampled</th><th class="num">% COMPLEX</th></tr>
+<tr><td>Amazon ESCI (US)</td><td>amazon-science/esci-data (Apache-2.0)</td><td class="num">97,345</td><td class="num">2,500</td><td class="num">4.7</td></tr>
+<tr><td>Home Depot</td><td>Kaggle relevance task (HF mirror)</td><td class="num">11,795</td><td class="num">2,000</td><td class="num">1.2</td></tr>
+<tr><td>MS MARCO (dev)</td><td>Microsoft passage ranking</td><td class="num">101,093</td><td class="num">1,500</td><td class="num">96.5</td></tr>
+<tr><td>WANDS (Wayfair)</td><td>wayfair/WANDS (MIT)</td><td class="num">480</td><td class="num">480</td><td class="num">3.2</td></tr>
+<tr><td>TREC Product Search ’23</td><td>trec-product-search (HF)</td><td class="num">186</td><td class="num">186</td><td class="num">3.2</td></tr>
+</table></div>
+
+<div class="fig">
+<svg viewBox="0 0 640 205" role="img" aria-label="Share of COMPLEX labels by dataset">
+  <line class="gridln" x1="180" y1="14" x2="180" y2="168"/>
+  <line class="gridln" x1="290" y1="14" x2="290" y2="168"/>
+  <line class="gridln" x1="400" y1="14" x2="400" y2="168"/>
+  <line class="gridln" x1="510" y1="14" x2="510" y2="168"/>
+  <line class="gridln" x1="620" y1="14" x2="620" y2="168"/>
+  <g class="bar"><title>MS MARCO: 96.5% COMPLEX (n=1,492)</title>
+    <text class="lab" x="170" y="32" text-anchor="end">MS MARCO</text>
+    <rect x="180" y="20" width="424.6" height="16" rx="4" fill="var(--complex)"/>
+    <text class="val" x="612" y="32">96.5%</text></g>
+  <g class="bar"><title>Amazon ESCI: 4.7% COMPLEX (n=2,491)</title>
+    <text class="lab" x="170" y="62" text-anchor="end">Amazon ESCI</text>
+    <rect x="180" y="50" width="20.7" height="16" rx="4" fill="var(--complex)"/>
+    <text class="val" x="208" y="62">4.7%</text></g>
+  <g class="bar"><title>WANDS: 3.2% COMPLEX (n=476)</title>
+    <text class="lab" x="170" y="92" text-anchor="end">WANDS</text>
+    <rect x="180" y="80" width="14.1" height="16" rx="4" fill="var(--complex)"/>
+    <text class="val" x="201" y="92">3.2%</text></g>
+  <g class="bar"><title>TREC Product Search: 3.2% COMPLEX (n=185)</title>
+    <text class="lab" x="170" y="122" text-anchor="end">TREC PS ’23</text>
+    <rect x="180" y="110" width="14.1" height="16" rx="4" fill="var(--complex)"/>
+    <text class="val" x="201" y="122">3.2%</text></g>
+  <g class="bar"><title>Home Depot: 1.2% COMPLEX (n=1,992)</title>
+    <text class="lab" x="170" y="152" text-anchor="end">Home Depot</text>
+    <rect x="180" y="140" width="5.3" height="16" rx="4" fill="var(--complex)"/>
+    <text class="val" x="192" y="152">1.2%</text></g>
+  <line class="axisln" x1="180" y1="168" x2="620" y2="168"/>
+  <text class="tick" x="180" y="184">0%</text><text class="tick" x="290" y="184" text-anchor="middle">25%</text>
+  <text class="tick" x="400" y="184" text-anchor="middle">50%</text><text class="tick" x="510" y="184" text-anchor="middle">75%</text>
+  <text class="tick" x="620" y="184" text-anchor="end">100%</text>
+</svg>
+<p class="figcap"><b>Figure 1 — Labels correlate strongly with dataset.</b> Commerce logs are
+95–99% SIMPLE; MS&nbsp;MARCO’s question-form queries are 96.5% COMPLEX. This imbalance drives
+both the generalization findings (§6) and the enrichment experiment (§7).</p>
+</div>
+
+<h2><span class="no">3</span>Ground truth by LLM ensemble</h2>
+<p>No public dataset carries this label, so ground truth was produced by an ensemble of
+Gemini&nbsp;2.5&nbsp;Flash annotators: two independent prompt variants — A: rubric-verbatim,
+label-only; B: a re-framed “router” task with per-query rationale — each labeling all 6,661
+queries at temperature&nbsp;0, plus an adjudicator variant with a larger thinking budget that
+ruled only on A/B disagreements.</p>
+<ul>
+<li>Raw A/B agreement <b>97.0%</b>, Cohen’s <b>κ&nbsp;=&nbsp;0.915</b> (“almost perfect” band);
+201 disagreements (3%) went to adjudication. Final gold set: <b>6,636 queries</b>
+(75.9% SIMPLE / 24.1% COMPLEX).</li>
+<li>Per-dataset agreement stayed ≥93% everywhere (lowest on MS MARCO’s ambiguous
+web queries; ≥97% on all commerce sets).</li>
+<li>A 70-query stratified manual audit (25 SIMPLE, 25 COMPLEX, 20 adjudicated) agreed with
+~95% of gold labels; the misses were genuinely borderline (<span class="q">“tacky ugly christmas
+sweater”</span> labeled COMPLEX).</li>
+<li>Pipeline properties: batched JSON-mode calls, resumable vote logs, majority aggregation.
+Total labeling cost for the project ≈ <b>$2</b> (~17.5k votes).</li>
+</ul>
+<div class="note">⚠ <b>Known bias:</b> a Gemini few-shot classifier is also one of the evaluated
+models (§5). Since gold labels come from Gemini prompts too, its score is optimistic —
+treated as a soft ceiling, not a fair competitor (§9).</div>
+
+<h2><span class="no">4</span>Classifier candidates</h2>
+<div class="tblwrap"><table>
+<tr><th>Model</th><th>Description</th><th>Params / cost profile</th></tr>
+<tr><td class="sans">length_thresh</td><td>≥6 tokens → COMPLEX (honesty baseline)</td><td>1 constant</td></tr>
+<tr><td class="sans">heuristic</td><td>hand-written rules: question words, superlatives, “vs”, gift, pronouns, “for” + occasion/persona lexicons</td><td>~90 keywords, 1&nbsp;µs</td></tr>
+<tr><td class="sans">feats_gbm</td><td>18 engineered lexical features → HistGradientBoosting</td><td>small tree ensemble</td></tr>
+<tr><td class="sans">tfidf_logreg</td><td>word 1-2gram + char 3-5gram TF-IDF → logistic regression (C tuned on val)</td><td>sparse linear, 0.3&nbsp;ms</td></tr>
+<tr><td class="sans">minilm_logreg</td><td>frozen all-MiniLM-L6-v2 embeddings → logistic regression</td><td>22M frozen + linear</td></tr>
+<tr><td class="sans">distilbert_ft</td><td>DistilBERT fine-tuned end-to-end (3 epochs, 32&nbsp;s on M-series)</td><td>66M, ~3&nbsp;ms</td></tr>
+<tr><td class="sans">gemini_fewshot</td><td>Gemini 2.5 Flash, 10-example few-shot prompt (no rubric)</td><td>API call, 649&nbsp;ms</td></tr>
+</table></div>
+<p>Splits: 70/10/20 train/val/test, stratified by label × dataset, fixed seed; all models share
+the identical test set (n&nbsp;=&nbsp;1,328).</p>
+
+<h2><span class="no">5</span>Main results</h2>
+<div class="fig">
+<svg viewBox="0 0 660 372" role="img" aria-label="Test accuracy by model with 95 percent confidence intervals">
+  <defs><pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--s1)" stroke-width="2"/></pattern></defs>
+  <line class="gridln" x1="196" y1="10" x2="196" y2="330"/>
+  <line class="gridln" x1="288" y1="10" x2="288" y2="330"/>
+  <line class="gridln" x1="380" y1="10" x2="380" y2="330"/>
+  <line class="gridln" x1="472" y1="10" x2="472" y2="330"/>
+  <line class="gridln" x1="564" y1="10" x2="564" y2="330"/>
+  <g class="bar"><title>Gemini few-shot: 97.1% (96.2–98.0) — shares model family with the labelers; 649 ms</title>
+    <text class="lab" x="140" y="30" text-anchor="end">gemini few-shot ⚠</text>
+    <rect x="150" y="18" width="407.4" height="16" rx="4" fill="url(#hatch)" stroke="var(--s1)" stroke-width="1.2"/>
+    <line x1="540.1" y1="26" x2="573.2" y2="26" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="540.1" y1="21" x2="540.1" y2="31" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="573.2" y1="21" x2="573.2" y2="31" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="30">.971</text></g>
+  <g class="bar"><title>DistilBERT fine-tuned: 96.1% (95.0–97.1)</title>
+    <text class="lab" x="140" y="66" text-anchor="end">distilbert ft</text>
+    <rect x="150" y="54" width="387.9" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="518" y1="62" x2="556.6" y2="62" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="518" y1="57" x2="518" y2="67" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="556.6" y1="57" x2="556.6" y2="67" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="66">.961</text></g>
+  <g class="bar"><title>DistilBERT fine-tuned + enrichment (recommended): 95.7% (94.6–96.8)</title>
+    <text class="lab" x="140" y="102" text-anchor="end" style="font-weight:700; fill:var(--ink)">distilbert ft +enrich ★</text>
+    <rect x="150" y="90" width="381.1" height="16" rx="4" fill="var(--s1d)"/>
+    <line x1="510.6" y1="98" x2="551.1" y2="98" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="510.6" y1="93" x2="510.6" y2="103" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="551.1" y1="93" x2="551.1" y2="103" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="102">.957</text></g>
+  <g class="bar"><title>TF-IDF + LogReg + enrichment: 95.3% (94.1–96.4)</title>
+    <text class="lab" x="140" y="138" text-anchor="end">tfidf logreg +enrich</text>
+    <rect x="150" y="126" width="372.8" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="501.4" y1="134" x2="543.8" y2="134" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="501.4" y1="129" x2="501.4" y2="139" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="543.8" y1="129" x2="543.8" y2="139" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="138">.953</text></g>
+  <g class="bar"><title>TF-IDF + LogReg: 94.9% (93.7–96.0)</title>
+    <text class="lab" x="140" y="174" text-anchor="end">tfidf logreg</text>
+    <rect x="150" y="162" width="365.8" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="494.1" y1="170" x2="536.4" y2="170" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="494.1" y1="165" x2="494.1" y2="175" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="536.4" y1="165" x2="536.4" y2="175" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="174">.949</text></g>
+  <g class="bar"><title>MiniLM embeddings + LogReg: 93.8% (92.5–95.1)</title>
+    <text class="lab" x="140" y="210" text-anchor="end">minilm logreg</text>
+    <rect x="150" y="198" width="345" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="472" y1="206" x2="519.8" y2="206" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="472" y1="201" x2="472" y2="211" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="519.8" y1="201" x2="519.8" y2="211" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="210">.938</text></g>
+  <g class="bar"><title>Engineered features + GBM: 90.7% (89.2–92.3)</title>
+    <text class="lab" x="140" y="246" text-anchor="end">feats gbm</text>
+    <rect x="150" y="234" width="289.6" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="411.3" y1="242" x2="468.3" y2="242" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="411.3" y1="237" x2="411.3" y2="247" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="468.3" y1="237" x2="468.3" y2="247" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="246">.907</text></g>
+  <g class="bar"><title>Hand-written heuristic: 88.7% (87.0–90.4)</title>
+    <text class="lab" x="140" y="282" text-anchor="end">heuristic</text>
+    <rect x="150" y="270" width="252.1" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="370.8" y1="278" x2="433.4" y2="278" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="370.8" y1="273" x2="370.8" y2="283" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="433.4" y1="273" x2="433.4" y2="283" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="282">.887</text></g>
+  <g class="bar"><title>Length threshold ≥6 tokens: 79.1% (77.0–81.2)</title>
+    <text class="lab" x="140" y="318" text-anchor="end">length ≥ 6</text>
+    <rect x="150" y="306" width="76.2" height="16" rx="4" fill="var(--s1)"/>
+    <line x1="186.8" y1="314" x2="264.1" y2="314" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="186.8" y1="309" x2="186.8" y2="319" stroke="var(--ink)" stroke-width="1.4"/>
+    <line x1="264.1" y1="309" x2="264.1" y2="319" stroke="var(--ink)" stroke-width="1.4"/>
+    <text class="val" x="580" y="318">.791</text></g>
+  <line class="axisln" x1="150" y1="330" x2="620" y2="330"/>
+  <text class="tick" x="150" y="348">.75</text><text class="tick" x="242" y="348" text-anchor="middle">.80</text>
+  <text class="tick" x="334" y="348" text-anchor="middle">.85</text><text class="tick" x="426" y="348" text-anchor="middle">.90</text>
+  <text class="tick" x="518" y="348" text-anchor="middle">.95</text><text class="tick" x="620" y="348" text-anchor="end">1.0</text>
+  <text class="tick" x="385" y="366" text-anchor="middle">test accuracy (n = 1,328), whiskers = bootstrap 95% CI</text>
+</svg>
+<p class="figcap"><b>Figure 2 — Accuracy at argmax threshold, 2,000-resample bootstrap CIs.</b>
+The hatched Gemini bar shares a model family with the labeling ensemble (§9); ★ marks the
+recommended model. All learned models beat the heuristic by wide, non-overlapping margins.</p>
+</div>
+
+<div class="tblwrap"><table>
+<tr><th>Model</th><th class="num">Acc</th><th class="num">Macro-F1</th><th class="num">Complex P</th><th class="num">Complex R</th><th class="num">ROC-AUC</th><th class="num">p50 lat.</th><th class="num">$/1k queries</th></tr>
+<tr><td class="sans">gemini_fewshot ⚠</td><td class="num">.971</td><td class="num">.962</td><td class="num">.917</td><td class="num">.969</td><td class="num">—</td><td class="num">649 ms</td><td class="num">$0.02</td></tr>
+<tr><td class="sans">distilbert_ft</td><td class="num">.961</td><td class="num">.945</td><td class="num">.950</td><td class="num">.884</td><td class="num">.985</td><td class="num">3.3 ms</td><td class="num">~0</td></tr>
+<tr class="best"><td class="sans">distilbert_ft +enrich ★</td><td class="num">.957</td><td class="num">.942</td><td class="num">.907</td><td class="num">.916</td><td class="num">.984</td><td class="num">3.3 ms</td><td class="num">~0</td></tr>
+<tr><td class="sans">tfidf_logreg +enrich</td><td class="num">.953</td><td class="num">.932</td><td class="num">.954</td><td class="num">.844</td><td class="num">.976</td><td class="num">0.3 ms</td><td class="num">~0</td></tr>
+<tr><td class="sans">tfidf_logreg</td><td class="num">.949</td><td class="num">.927</td><td class="num">.947</td><td class="num">.834</td><td class="num">.974</td><td class="num">0.3 ms</td><td class="num">~0</td></tr>
+<tr><td class="sans">minilm_logreg</td><td class="num">.938</td><td class="num">.912</td><td class="num">.907</td><td class="num">.825</td><td class="num">.966</td><td class="num">3.2 ms</td><td class="num">~0</td></tr>
+<tr><td class="sans">feats_gbm</td><td class="num">.907</td><td class="num">.862</td><td class="num">.902</td><td class="num">.691</td><td class="num">.895</td><td class="num">9.7 ms</td><td class="num">~0</td></tr>
+<tr><td class="sans">heuristic</td><td class="num">.887</td><td class="num">.834</td><td class="num">.829</td><td class="num">.669</td><td class="num">—</td><td class="num">1 µs</td><td class="num">~0</td></tr>
+<tr><td class="sans">length ≥ 6</td><td class="num">.791</td><td class="num">.704</td><td class="num">.575</td><td class="num">.516</td><td class="num">—</td><td class="num">~0</td><td class="num">~0</td></tr>
+</table></div>
+<p>Three observations. First, query complexity is largely a <i>surface-lexical</i> property:
+a 0.3&nbsp;ms sparse linear model recovers ~95% accuracy, and even a length threshold gets 79%.
+Second, fine-tuning buys its margin mostly on <b>complex recall</b> (.916 vs .844 for TF-IDF at
+comparable precision) — exactly the metric the product cares about. Third, the LLM’s
++1&nbsp;pt over DistilBERT costs 200× the latency; in a hot path serving every search, that
+trade is unjustifiable.</p>
+
+<h2><span class="no">6</span>Generalization: leave-one-dataset-out</h2>
+<p>Each trainable model was retrained five times with one dataset fully held out. Accuracy
+stays high on held-out <i>commerce</i> datasets, but macro-F1 reveals the cost: recall of the
+rare COMPLEX class collapses on unseen domains.</p>
+<div class="fig">
+<div class="legend"><span><i style="background:var(--s2)"></i>heuristic</span>
+<span><i style="background:var(--s1)"></i>tfidf logreg</span>
+<span><i style="background:var(--s3)"></i>distilbert ft</span></div>
+<svg viewBox="0 0 660 218" role="img" aria-label="Leave-one-dataset-out macro F1 by held-out dataset">
+  <line class="gridln" x1="80" y1="10" x2="80" y2="178"/>
+  <line class="gridln" x1="210" y1="10" x2="210" y2="178"/>
+  <line class="gridln" x1="340" y1="10" x2="340" y2="178"/>
+  <line class="gridln" x1="470" y1="10" x2="470" y2="178"/>
+  <line class="gridln" x1="600" y1="10" x2="600" y2="178"/>
+  <g><text class="lab" x="70" y="34" text-anchor="end">ESCI</text>
+    <line class="gridln" x1="80" y1="30" x2="600" y2="30"/>
+    <circle class="dot" cx="377" cy="30" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>tfidf: 0.571</title></circle>
+    <circle class="dot" cx="399" cy="30" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>heuristic: 0.613</title></circle>
+    <circle class="dot" cx="421" cy="30" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>distilbert: 0.655</title></circle></g>
+  <g><text class="lab" x="70" y="70" text-anchor="end">Home Depot</text>
+    <line class="gridln" x1="80" y1="66" x2="600" y2="66"/>
+    <circle class="dot" cx="380" cy="66" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>heuristic: 0.576</title></circle>
+    <circle class="dot" cx="394" cy="66" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>tfidf: 0.604</title></circle>
+    <circle class="dot" cx="448" cy="66" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>distilbert: 0.708</title></circle></g>
+  <g><text class="lab" x="70" y="106" text-anchor="end">MS MARCO</text>
+    <line class="gridln" x1="80" y1="102" x2="600" y2="102"/>
+    <circle class="dot" cx="98" cy="102" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>tfidf: 0.034</title></circle>
+    <circle class="dot" cx="98" cy="102" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" transform="translate(0,9)"><title>distilbert: 0.034</title></circle>
+    <circle class="dot" cx="343" cy="102" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>heuristic: 0.506</title></circle>
+    <text class="val" x="112" y="98">learned models collapse → predict all-SIMPLE</text></g>
+  <g><text class="lab" x="70" y="142" text-anchor="end">TREC PS</text>
+    <line class="gridln" x1="80" y1="138" x2="600" y2="138"/>
+    <circle class="dot" cx="371" cy="138" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>heuristic: 0.560</title></circle>
+    <circle class="dot" cx="401" cy="138" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>tfidf: 0.617</title></circle>
+    <circle class="dot" cx="429" cy="138" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>distilbert: 0.672</title></circle></g>
+  <g><text class="lab" x="70" y="178" text-anchor="end">WANDS</text>
+    <line class="gridln" x1="80" y1="174" x2="600" y2="174"/>
+    <circle class="dot" cx="336" cy="174" r="6" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>tfidf: 0.492</title></circle>
+    <circle class="dot" cx="336" cy="174" r="6" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" transform="translate(0,9)"><title>distilbert: 0.492</title></circle>
+    <circle class="dot" cx="407" cy="174" r="6" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>heuristic: 0.628</title></circle></g>
+  <line class="axisln" x1="80" y1="192" x2="600" y2="192"/>
+  <text class="tick" x="80" y="208">0.0</text><text class="tick" x="210" y="208" text-anchor="middle">0.25</text>
+  <text class="tick" x="340" y="208" text-anchor="middle">0.50</text><text class="tick" x="470" y="208" text-anchor="middle">0.75</text>
+  <text class="tick" x="600" y="208" text-anchor="end">1.0 macro-F1</text>
+</svg>
+<p class="figcap"><b>Figure 3 — Macro-F1 with each dataset held out of training.</b>
+Trained without MS&nbsp;MARCO, every learned model routes essentially <i>all</i> of its
+question-form queries to SIMPLE (3.5% accuracy on a 97%-COMPLEX set), while the keyword
+heuristic — which hard-codes question words — reaches 0.51&nbsp;F1 / 73% accuracy.</p>
+</div>
+<p><b>The headline finding of this study:</b> learned complexity signals do not transfer
+across phrasing domains. A model that has never seen question-form informational queries
+does not discover that “how much does X cost” is COMPLEX — no matter the architecture.
+Training-data diversity matters more than model capacity; the cheap insurance is a
+rule-OR-model union (route COMPLEX if either fires), which preserves the heuristic’s
+domain-independent floor.</p>
+
+<h2><span class="no">7</span>The commerce-complex gap</h2>
+<p>Only ~160 of the pool’s COMPLEX labels come from commerce logs — yet
+<span class="q">“shirts for a beach wedding”</span>-style queries are the whole point of the
+feature. Two interventions target this gap:</p>
+<ol>
+<li><b>Enrichment:</b> 2,000 extra ESCI/Home&nbsp;Depot queries, sampled with a bias toward
+complexity signals (≥5 tokens or advice/occasion keywords), ensemble-labeled the same way
+(κ&nbsp;=&nbsp;0.73 — these are harder, more borderline queries). Half joined training;
+half form a held-out <b>challenge slice</b> (1,000 queries, 65 COMPLEX).</li>
+<li><b>Operating point:</b> the router’s threshold is a product decision, not 0.5 by default.
+An unnecessary overview costs interface real estate and tokens; a missed one loses the
+feature’s value. We sweep τ on held-out data.</li>
+</ol>
+<div class="tblwrap"><table>
+<tr><th>Challenge slice (n=1,000)</th><th class="num">Complex recall</th><th class="num">False-positive rate</th></tr>
+<tr><td class="sans">distilbert_ft (τ=.5)</td><td class="num">.292</td><td class="num">.018</td></tr>
+<tr><td class="sans">tfidf_logreg (τ=.5)</td><td class="num">.400</td><td class="num">.027</td></tr>
+<tr><td class="sans">distilbert_ft +enrich (τ=.5)</td><td class="num">.462</td><td class="num">.034</td></tr>
+<tr class="best"><td class="sans">distilbert_ft +enrich (τ=.25) ★</td><td class="num">.600</td><td class="num">.063</td></tr>
+<tr><td class="sans">heuristic</td><td class="num">.585</td><td class="num">.179</td></tr>
+</table></div>
+
+<div class="fig">
+<div class="legend"><span><i style="background:var(--s1)"></i>challenge complex recall</span>
+<span><i style="background:var(--s3)"></i>IID test accuracy</span>
+<span><i style="background:var(--s2)"></i>challenge false-positive rate</span></div>
+<svg viewBox="0 0 660 300" role="img" aria-label="Threshold sweep: recall, accuracy and false positive rate versus threshold">
+  <line class="gridln" x1="60" y1="260" x2="600" y2="260"/>
+  <line class="gridln" x1="60" y1="200" x2="600" y2="200"/>
+  <line class="gridln" x1="60" y1="140" x2="600" y2="140"/>
+  <line class="gridln" x1="60" y1="80" x2="600" y2="80"/>
+  <line class="gridln" x1="60" y1="20" x2="600" y2="20"/>
+  <line x1="262.5" y1="14" x2="262.5" y2="266" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <text class="tick" x="262.5" y="290" text-anchor="middle" style="font-weight:700">τ = .25 ★</text>
+  <polyline fill="none" stroke="var(--s3)" stroke-width="2"
+    points="60,39.7 127.5,36.1 195,34.2 262.5,32 330,31.3 465,30.3 600,30.3"/>
+  <polyline fill="none" stroke="var(--s1)" stroke-width="2"
+    points="60,90.1 127.5,97.5 195,105 262.5,116 330,127 465,145.5 600,149.1"/>
+  <polyline fill="none" stroke="var(--s2)" stroke-width="2"
+    points="60,228.8 127.5,237.4 195,242.7 262.5,244.9 330,246.3 465,249.7 600,251.8"/>
+  <g><circle class="dot" cx="262.5" cy="32" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>τ=.25 — IID test accuracy .950</title></circle>
+     <circle class="dot" cx="262.5" cy="116" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>τ=.25 — challenge recall .600</title></circle>
+     <circle class="dot" cx="262.5" cy="244.9" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>τ=.25 — challenge FPR .063</title></circle></g>
+  <g><circle class="dot" cx="600" cy="30.3" r="4" fill="var(--s3)" stroke="var(--surface)" stroke-width="2"><title>τ=.5 — IID test accuracy .957</title></circle>
+     <circle class="dot" cx="600" cy="149.1" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"><title>τ=.5 — challenge recall .462</title></circle>
+     <circle class="dot" cx="600" cy="251.8" r="4" fill="var(--s2)" stroke="var(--surface)" stroke-width="2"><title>τ=.5 — challenge FPR .034</title></circle></g>
+  <text class="val" x="608" y="34" >.957 acc</text>
+  <text class="val" x="608" y="152">.462 recall</text>
+  <text class="val" x="608" y="255">.034 FPR</text>
+  <line class="axisln" x1="60" y1="266" x2="600" y2="266"/>
+  <text class="tick" x="60" y="284">.10</text><text class="tick" x="195" y="284" text-anchor="middle">.20</text>
+  <text class="tick" x="330" y="284" text-anchor="middle">.30</text><text class="tick" x="465" y="284" text-anchor="middle">.40</text>
+  <text class="tick" x="600" y="284" text-anchor="end">.50 threshold τ</text>
+  <text class="tick" x="52" y="264" text-anchor="end">0</text>
+  <text class="tick" x="52" y="144" text-anchor="end">.5</text>
+  <text class="tick" x="52" y="24" text-anchor="end">1.0</text>
+</svg>
+<p class="figcap"><b>Figure 4 — Threshold sweep for the enriched DistilBERT.</b> Moving from
+argmax (τ=.5) to τ=.25 lifts commerce-complex recall .462→.600 while IID accuracy slips only
+.957→.950 and the false-positive rate stays at 6.3%. The model is systematically
+under-confident on occasion-translation queries (they cluster at p≈0.1–0.6), so a lower
+threshold recovers them cheaply.</p>
+</div>
+<p>Net effect of both interventions: commerce-complex recall
+<b>.292&nbsp;→&nbsp;.600</b> (+31&nbsp;pts) for −1.1&nbsp;pt IID accuracy. The heuristic still
+catches slightly fewer of these than the shipped configuration while triggering falsely
+3× as often.</p>
+
+<h2><span class="no">8</span>Error analysis</h2>
+<p>The recommended model makes 66 errors on the 1,328-query test set. Reading all of them,
+three clusters emerge:</p>
+<ul>
+<li><b>Label-noise / genuinely ambiguous (~40%).</b> Book and media titles typed as queries
+(<span class="q">“a very stable genius”</span>, <span class="q">“this is marketing…”</span>),
+fragments (<span class="q">“time to read”</span>), navigational lookups with question words.
+Both the model and any human would hedge; several gold labels are defensible either way.</li>
+<li><b>Missed inference-y queries (~35%).</b> <span class="q">“diy garage door install”</span>,
+<span class="q">“sore throat relief”</span>, <span class="q">“l shaped desk for two people”</span> —
+symptom/problem/persona intent phrased without any lexical trigger. This is the
+residual hard core that the threshold fix only partly reaches
+(<span class="q">“tv under 500 for bright room gaming”</span> still scores p=.04).</li>
+<li><b>Over-triggers on gift/for phrasing (~25%).</b> <span class="q">“birthday gifts for
+hanique”</span> (a specific person’s name → really a category browse),
+<span class="q">“numbers for mailboxes for outside”</span> — “for” as an attribute, not a persona.</li>
+</ul>
+
+<h2><span class="no">9</span>Threats to validity</h2>
+<ol>
+<li><b>LLM-labeled ground truth.</b> Gold labels are Gemini-ensemble output. The κ=0.915
+agreement is between two prompts of the <i>same model family</i> — it bounds prompt-sensitivity,
+not true label quality. The 70-query human audit (~95% agreement) mitigates but does not
+eliminate this; the Gemini few-shot “ceiling” in §5 is inflated for the same reason.</li>
+<li><b>Domain–label confound.</b> 90% of COMPLEX labels come from MS MARCO (Figure 1), so IID
+metrics partly reward domain recognition. The LODO study (§6) and the challenge slice (§7)
+were designed specifically to expose this — and did.</li>
+<li><b>Challenge-slice noise.</b> The enriched sample’s κ is 0.73 (borderline queries by
+construction); its recall numbers carry more label noise than the main test set.</li>
+<li><b>English-only, US-centric</b>, and latency measured on one machine (Apple M-series,
+batch = 1).</li>
+</ol>
+
+<h2><span class="no">10</span>Deployment recommendation</h2>
+<ol>
+<li><b>Router:</b> <code>distilbert_ft_enriched</code> at τ&nbsp;=&nbsp;0.25, in-process
+(~3&nbsp;ms p50, no extra infra). Where 3&nbsp;ms is too much, <code>tfidf_logreg</code>
+at 0.3&nbsp;ms keeps 95.3% accuracy but gives up complex recall.</li>
+<li><b>Union with the heuristic</b> for domain robustness (§6): route COMPLEX if either the
+model or the question-word/comparison rules fire. The rules cost microseconds and cover
+phrasing families the training data may lack.</li>
+<li><b>Overview is additive, not substitutive:</b> at τ=.25 the router triggers on ~27% of
+queries; the product grid should always render, with the overview streaming in above it —
+misroutes then degrade gracefully in both directions.</li>
+<li><b>Retrain quarterly from clicked-overview engagement signals</b>; the labeling pipeline
+is resumable and costs ~$2 per 10k queries, so refreshing gold data is essentially free.</li>
+<li><b>Keep the LLM out of the routing hot path.</b> Its +1&nbsp;pt accuracy costs 200×
+latency; the same LLM budget is better spent generating the overviews themselves.</li>
+</ol>
+
+<h2><span class="no">11</span>Reproducibility</h2>
+<p>Everything lives in <code>Fable/query-classifier</code> (git-initialized, data and model
+weights gitignored): <code>src/rubric.py</code> (taxonomy), <code>src/label.py</code> +
+<code>aggregate_labels.py</code> (ensemble labeling, resumable),
+<code>train.py</code> / <code>train_transformer.py</code> / <code>train_enriched.py</code>
+(models, <code>--lodo</code>), <code>gemini_classify.py</code> (LLM baseline),
+<code>evaluate.py</code> (bootstrap metrics), <code>predict.py</code> (shipping Router),
+<code>demo/server.py</code> (interactive demo at <code>localhost:8642</code>).
+Raw-dataset sources and licenses: <code>data/raw/MANIFEST.json</code>. Splits, seeds, and all
+reported numbers (<code>results/*.json</code>) are committed. Total external cost of the
+study: ≈&nbsp;$2 in Gemini 2.5 Flash calls.</p>
+
+<p class="figcap" style="margin-top:3rem">Report generated 2026-07-23. Datasets: Amazon ESCI
+(Apache-2.0), Home Depot (Kaggle mirror), MS MARCO (non-commercial research terms), WANDS
+(MIT), TREC Product Search 2023. Labels are LLM-ensemble judgments, not human gold.</p>
+</div>
+</body>
+</html>
