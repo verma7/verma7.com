@@ -129,6 +129,43 @@ curl -s "https://verma7.com/classify?q=best+tv"
 sudo journalctl -u query-router --since "1 hour ago"
 ```
 
+## Health dashboard service
+
+`/health/` is a **private** dashboard (Caddy Basic Auth) showing Apple Health
+data synced from an iPhone Shortcut (added 2026-07-24):
+
+| Component | Value |
+|---|---|
+| Service | `health-api.service` (systemd, `Restart=always`, `MemoryMax=150M`, runs as user `health`) |
+| App | `/opt/health-api/server.py` — Python stdlib HTTP on `127.0.0.1:8643` |
+| Storage | SQLite at `/opt/health-api/health.db` (dedup on `(metric, start, source)`) |
+| Ingest secret | `/opt/health-api/ingest.secret` (bearer token the Shortcut sends) |
+| Caddy | `reverse_proxy /health/ingest` + `/health/api*` → `:8643`; `basicauth` on `/health*` **except** `/health/ingest` |
+
+Endpoints (all under `verma7.com`):
+
+- `POST /health/ingest` — bearer-auth (`Authorization: Bearer <ingest.secret>`).
+  Accepts either a flat daily snapshot `{"date":"…","values":{"steps":…}}` or a
+  nested `{"metrics":[{"name","unit","samples":[…]}],"workouts":[…]}` payload.
+- `GET /health/api/data?days=N` — Basic-Auth-gated JSON for the dashboard.
+- `GET /health/api/ping` — health check.
+
+Source lives in the local `Fable/health-sync` repo on the MacBook. To update the
+service: `gcloud compute scp server.py verma7-web:~/ …`, `sudo mv` into
+`/opt/health-api/`, `sudo systemctl restart health-api`. The dashboard page
+(`health/index.html`) deploys via the normal git push flow.
+
+```bash
+# health check + service logs
+curl -s localhost:8643/health/api/ping   # (on the VM)
+sudo journalctl -u health-api --since "1 hour ago"
+# rotate the ingest secret
+echo -n "$(openssl rand -base64 32 | tr -d /+= )" | sudo tee /opt/health-api/ingest.secret
+sudo systemctl restart health-api   # then update the Shortcut's bearer token
+# reset the dashboard password
+caddy hash-password --plaintext 'NEWPASS'   # paste hash into /etc/caddy/Caddyfile, then: sudo systemctl reload caddy
+```
+
 ## History / legacy
 
 - Previously served via a Cloudflare Tunnel (`26fce452-…cfargotunnel.com`);
