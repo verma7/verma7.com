@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="robots" content="noindex, nofollow" />
+	<meta name="description" content="Private health dashboard" />
+	<link rel="icon" href="/images/A.png" />
+	<link rel="stylesheet" href="/style.css" type="text/css" />
+	<title>Health - verma7.com</title>
+	<style>
+		.textContainer { font-size: 0.62em; }
+		.hd { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:10px; }
+		.sync { color:#777; font-size:0.9em; }
+		.controls { margin: 6px 0 18px; }
+		.controls button {
+			font-family: inherit; font-size:0.9em; cursor:pointer;
+			border:1px solid #999; background:#f4f4f4; color:#333;
+			padding:4px 12px; margin-right:6px; border-radius:3px;
+		}
+		.controls button.on { background:#B00; color:#fff; border-color:#B00; }
+		.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+		.card {
+			border:1px solid #ddd; border-top:3px solid #B00; border-radius:4px;
+			padding:12px 14px; background:#fff; box-shadow:0 1px 3px #0000000d;
+		}
+		.card h3 { margin:0 0 2px; color:#333; font-size:1.05em; }
+		.big { font-size:1.9em; color:#111; font-weight:bold; line-height:1.1; }
+		.big .u { font-size:0.5em; color:#888; font-weight:normal; margin-left:3px; }
+		.sub { color:#888; font-size:0.85em; margin-top:2px; }
+		.card svg { display:block; width:100%; height:56px; margin-top:8px; overflow:visible; }
+		table { border-collapse:collapse; width:100%; font-size:0.95em; margin-top:6px; }
+		th, td { text-align:left; padding:4px 10px 4px 0; border-bottom:1px solid #eee; }
+		th { color:#B00; }
+		.empty { border:2px dashed #00009C; padding:18px; margin:12px 0; }
+		.empty code { background:#f0f0f0; padding:1px 4px; }
+		.footer { padding-top:18px; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="textContainer">
+			<div class="hd">
+				<h1><a class="header" href="/">verma7.com</a></h1>
+				<span class="sync" id="sync"></span>
+			</div>
+			<h2>Health</h2>
+			<div class="controls" id="ranges">
+				<button data-days="30">30d</button>
+				<button data-days="90" class="on">90d</button>
+				<button data-days="365">1y</button>
+				<button data-days="1825">All</button>
+			</div>
+			<div id="content"><p>Loading…</p></div>
+			<div class="footer"><a href="/">Home</a></div>
+		</div>
+	</div>
+
+	<script>
+	var DAYS = 90;
+
+	function fmt(n){
+		if (n === null || n === undefined) return "–";
+		var a = Math.abs(n);
+		if (a >= 1000) return Math.round(n).toLocaleString();
+		if (a >= 100) return Math.round(n).toString();
+		return (Math.round(n*10)/10).toString();
+	}
+	function shortDate(iso){
+		if(!iso) return "";
+		var d = new Date(iso);
+		return isNaN(d) ? iso.slice(0,10) : d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+	}
+
+	// Minimal inline SVG line chart. daily = [[date, value], ...]
+	function sparkline(daily){
+		var W = 300, H = 56, pad = 4;
+		if (daily.length < 2){
+			return '<svg viewBox="0 0 '+W+' '+H+'"><text x="'+(W/2)+'" y="'+(H/2+4)+'" '+
+			       'text-anchor="middle" fill="#bbb" font-size="12">not enough data</text></svg>';
+		}
+		var vals = daily.map(function(d){return d[1];});
+		var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+		var span = (max - min) || 1;
+		var n = daily.length;
+		function X(i){ return pad + i*(W-2*pad)/(n-1); }
+		function Y(v){ return H-pad - (v-min)/span*(H-2*pad); }
+		var line = "", area = "M"+X(0)+","+(H-pad);
+		for (var i=0;i<n;i++){
+			var x=X(i).toFixed(1), y=Y(vals[i]).toFixed(1);
+			line += (i?"L":"M")+x+","+y+" ";
+			area += "L"+x+","+y+" ";
+		}
+		area += "L"+X(n-1)+","+(H-pad)+"Z";
+		var lastX = X(n-1).toFixed(1), lastY = Y(vals[n-1]).toFixed(1);
+		return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+			'<path d="'+area+'" fill="#B0000010"/>'+
+			'<path d="'+line+'" fill="none" stroke="#B00" stroke-width="1.6" '+
+			'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>'+
+			'<circle cx="'+lastX+'" cy="'+lastY+'" r="2.6" fill="#B00"/></svg>';
+	}
+
+	function card(m){
+		var s = m.stats;
+		var extra = m.agg === "sum"
+			? "avg "+fmt(s.avg)+" · max "+fmt(s.max)
+			: "avg "+fmt(s.avg)+" · "+fmt(s.min)+"–"+fmt(s.max);
+		return '<div class="card">'+
+			'<h3>'+m.display+'</h3>'+
+			'<div class="big">'+fmt(m.latest.value)+'<span class="u">'+(m.unit||"")+'</span></div>'+
+			'<div class="sub">latest '+shortDate(m.latest.date)+' · '+extra+'</div>'+
+			sparkline(m.daily)+
+		'</div>';
+	}
+
+	function workoutTable(ws){
+		if(!ws || !ws.length) return "";
+		var rows = ws.slice(0,20).map(function(w){
+			return '<tr><td>'+shortDate(w.start)+'</td><td>'+w.type+'</td>'+
+				'<td>'+(w.duration_min!=null?w.duration_min+" min":"–")+'</td>'+
+				'<td>'+(w.distance_km!=null?w.distance_km+" km":"–")+'</td>'+
+				'<td>'+(w.energy_kcal!=null?w.energy_kcal+" kcal":"–")+'</td></tr>';
+		}).join("");
+		return '<h2>Workouts</h2><table><tr><th>Date</th><th>Type</th><th>Duration</th>'+
+			'<th>Distance</th><th>Energy</th></tr>'+rows+'</table>';
+	}
+
+	function render(data){
+		var keys = Object.keys(data.metrics || {});
+		var sync = document.getElementById("sync");
+		sync.textContent = data.last_sync ? "last sync " + new Date(data.last_sync).toLocaleString() : "";
+		var content = document.getElementById("content");
+		if (!keys.length && !(data.workouts||[]).length){
+			content.innerHTML = '<div class="empty"><b>No data yet.</b><br>'+
+				'Set up the iPhone Shortcut to POST to '+
+				'<code>https://verma7.com/health/ingest</code> with your bearer token, '+
+				'then run it once. Data appears here automatically.</div>';
+			return;
+		}
+		var html = '<div class="grid">' + keys.map(function(k){ return card(data.metrics[k]); }).join("") + '</div>';
+		html += workoutTable(data.workouts);
+		content.innerHTML = html;
+	}
+
+	function load(){
+		document.getElementById("content").innerHTML = "<p>Loading…</p>";
+		fetch("/health/api/data?days="+DAYS, {credentials:"same-origin"})
+			.then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+			.then(render)
+			.catch(function(e){
+				document.getElementById("content").innerHTML =
+					'<div class="empty">Could not load data ('+e.message+'). '+
+					'Is the health-api service running?</div>';
+			});
+	}
+
+	document.getElementById("ranges").addEventListener("click", function(e){
+		if (e.target.tagName !== "BUTTON") return;
+		DAYS = parseInt(e.target.getAttribute("data-days"), 10);
+		[].forEach.call(this.children, function(b){ b.classList.remove("on"); });
+		e.target.classList.add("on");
+		load();
+	});
+
+	load();
+	</script>
+</body>
+</html>
