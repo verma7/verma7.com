@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="robots" content="noindex, nofollow" />
+	<meta name="description" content="Connect a bank account" />
+	<link rel="icon" href="/images/A.png" />
+	<link rel="stylesheet" href="/style.css" type="text/css" />
+	<title>Connect a bank - verma7.com</title>
+	<style>
+		.textContainer { font-size: 0.62em; }
+		.box { border:2px dashed #00009C; padding:18px; margin:12px 0; }
+		.btn { font-family:inherit; font-size:0.95em; cursor:pointer; border:1px solid #0A6B3D;
+			background:#0A6B3D; color:#fff; padding:6px 16px; border-radius:3px; }
+		textarea { font-family:monospace; font-size:0.9em; width:100%; max-width:640px;
+			height:90px; padding:6px; border:1px solid #bbb; border-radius:3px; box-sizing:border-box; }
+		ol li { margin-bottom:6px; }
+		.err { color:#B00; margin-top:8px; }
+		.ok { color:#0A6B3D; margin-top:8px; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="textContainer">
+			<h1><a class="header" href="/">verma7.com</a></h1>
+			<h2>Connect a bank</h2>
+			<div class="box" id="box"><p>Checking session…</p></div>
+			<div class="footer"><a href="/finance/">Back to dashboard</a></div>
+		</div>
+	</div>
+
+<script>
+"use strict";
+var box = document.getElementById("box");
+
+fetch("/finance/api/auth/status", {credentials:"same-origin"})
+	.then(function(r){ return r.json(); })
+	.then(function(s){
+		if (!s.authenticated) {
+			box.innerHTML = '<b>Sign in first.</b><p>Bank enrollment requires an authenticated session.</p>' +
+				'<p><a href="/finance/">Go to the dashboard to sign in</a>, then come back.</p>';
+			return;
+		}
+		box.innerHTML =
+			'<b>Connect via SimpleFIN Bridge</b>' +
+			'<ol>' +
+			'<li>Create an account at <a href="https://bridge.simplefin.org" target="_blank" rel="noopener">bridge.simplefin.org</a> ($1.50/mo) and link your banks there (Wells Fargo, Chase, …). Your bank credentials go only to SimpleFIN — never to verma7.com.</li>' +
+			'<li>On the Bridge site choose <i>New app connection</i> to get a <b>setup token</b> (a long base64 string).</li>' +
+			'<li>Paste the token below. It is single-use: this server exchanges it once for a permanent read-only access URL, which is stored on the VM.</li>' +
+			'</ol>' +
+			'<p><textarea id="tok" placeholder="paste setup token" autocomplete="off"></textarea></p>' +
+			'<button class="btn" id="go">Connect</button><div id="msg"></div>';
+		document.getElementById("go").onclick = function(){
+			var msg = document.getElementById("msg");
+			var token = document.getElementById("tok").value.trim();
+			if (!token) { msg.className = "err"; msg.textContent = "Paste a setup token first."; return; }
+			msg.className = ""; msg.textContent = "Claiming token…";
+			fetch("/finance/api/enroll", {
+				method: "POST", credentials: "same-origin",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify({setup_token: token})
+			}).then(function(r){ return r.json(); }).then(function(j){
+				if (j.ok) {
+					msg.className = "ok";
+					msg.textContent = "Connected! Initial sync started — data appears on the dashboard within a minute or two.";
+					document.getElementById("tok").value = "";
+				} else {
+					msg.className = "err"; msg.textContent = j.error || "enroll failed";
+				}
+			}).catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
+		};
+	})
+	.catch(function(e){ box.innerHTML = '<b>Error:</b> ' + e.message; });
+</script>
+</body>
+</html>

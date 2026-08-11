@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="robots" content="noindex, nofollow" />
+	<meta name="description" content="Private finance dashboard" />
+	<link rel="icon" href="/images/A.png" />
+	<link rel="stylesheet" href="/style.css" type="text/css" />
+	<title>Finance - verma7.com</title>
+	<style>
+		.textContainer { font-size: 0.62em; }
+		.hd { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:10px; }
+		.sync { color:#777; font-size:0.9em; }
+		.tabs { margin: 6px 0 18px; }
+		.tabs button, .btn {
+			font-family: inherit; font-size:0.9em; cursor:pointer;
+			border:1px solid #999; background:#f4f4f4; color:#333;
+			padding:4px 12px; margin-right:6px; border-radius:3px;
+		}
+		.tabs button.on { background:#0A6B3D; color:#fff; border-color:#0A6B3D; }
+		.btn.primary { background:#0A6B3D; color:#fff; border-color:#0A6B3D; }
+		.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+		.card {
+			border:1px solid #ddd; border-top:3px solid #0A6B3D; border-radius:4px;
+			padding:12px 14px; background:#fff; box-shadow:0 1px 3px #0000000d;
+		}
+		.card h3 { margin:0 0 2px; color:#333; font-size:1.05em; }
+		.big { font-size:1.8em; color:#111; font-weight:bold; line-height:1.1; }
+		.neg { color:#B00; }
+		.sub { color:#888; font-size:0.85em; margin-top:2px; }
+		.chart svg { display:block; width:100%; height:120px; margin-top:8px; overflow:visible; }
+		table { border-collapse:collapse; width:100%; font-size:0.95em; margin-top:6px; }
+		th, td { text-align:left; padding:4px 10px 4px 0; border-bottom:1px solid #eee; }
+		th { color:#0A6B3D; }
+		td.r, th.r { text-align:right; }
+		.filters { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+		.filters input, .filters select {
+			font-family:inherit; font-size:0.9em; padding:4px 6px;
+			border:1px solid #bbb; border-radius:3px;
+		}
+		.badge { font-size:0.8em; padding:1px 7px; border-radius:9px; color:#fff; background:#888; }
+		.badge.new { background:#0A6B3D; } .badge.changed { background:#c77c00; }
+		.badge.missed { background:#B00; } .badge.active { background:#557; }
+		.bar { background:#0A6B3D22; height:16px; border-radius:2px; }
+		.bar i { display:block; height:100%; background:#0A6B3D; border-radius:2px; }
+		.empty, .login-box { border:2px dashed #00009C; padding:18px; margin:12px 0; }
+		.login-box input { font-family:inherit; font-size:0.95em; padding:5px 8px; border:1px solid #bbb; border-radius:3px; width:280px; max-width:100%; }
+		.err { color:#B00; margin-top:8px; }
+		.footer { padding-top:18px; }
+		.warnrow { background:#fff6e6; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="textContainer">
+			<div class="hd">
+				<h1><a class="header" href="/">verma7.com</a></h1>
+				<span class="sync" id="sync"></span>
+			</div>
+			<h2>Finance</h2>
+			<div id="app"><p>Loading…</p></div>
+			<div class="footer"><a href="/">Home</a> · <a href="/finance/connect.html">Connect a bank</a> · <a href="#" id="logout" style="display:none">Log out</a></div>
+		</div>
+	</div>
+
+<script>
+"use strict";
+var API = "/finance/api";
+var app = document.getElementById("app");
+
+// ---------------------------------------------------------------- helpers ----
+function esc(s){ var d = document.createElement("div"); d.textContent = (s==null?"":String(s)); return d.innerHTML; }
+function usd(n){
+	if (n === null || n === undefined) return "–";
+	var sign = n < 0 ? "-" : "";
+	return sign + "$" + Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function usd0(n){
+	if (n === null || n === undefined) return "–";
+	return (n<0?"-":"") + "$" + Math.round(Math.abs(n)).toLocaleString();
+}
+function shortDate(iso){
+	if(!iso) return "";
+	var d = new Date(iso + (iso.length === 10 ? "T12:00:00" : ""));
+	return isNaN(d) ? iso.slice(0,10) : d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+}
+function getJSON(path){
+	return fetch(API + path, {credentials:"same-origin"}).then(function(r){
+		if (r.status === 401) { renderLogin(); throw new Error("unauthenticated"); }
+		return r.json().then(function(j){ if(!r.ok) throw new Error(j.error || r.status); return j; });
+	});
+}
+function postJSON(path, body, headers){
+	var h = Object.assign({"Content-Type":"application/json"}, headers || {});
+	return fetch(API + path, {method:"POST", credentials:"same-origin", headers:h,
+		body: JSON.stringify(body || {})}).then(function(r){
+		return r.json().then(function(j){ if(!r.ok) throw new Error(j.error || r.status); return j; });
+	});
+}
+
+// base64url <-> ArrayBuffer for WebAuthn
+function b2buf(s){
+	s = s.replace(/-/g,"+").replace(/_/g,"/"); while (s.length % 4) s += "=";
+	var bin = atob(s), b = new Uint8Array(bin.length);
+	for (var i=0;i<bin.length;i++) b[i] = bin.charCodeAt(i);
+	return b.buffer;
+}
+function buf2b(buf){
+	var b = new Uint8Array(buf), bin = "";
+	for (var i=0;i<b.length;i++) bin += String.fromCharCode(b[i]);
+	return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+
+// ----------------------------------------------------------------- passkey ----
+function decodeCreationOptions(o){
+	o.challenge = b2buf(o.challenge);
+	o.user.id = b2buf(o.user.id);
+	(o.excludeCredentials || []).forEach(function(c){ c.id = b2buf(c.id); });
+	return o;
+}
+function decodeRequestOptions(o){
+	o.challenge = b2buf(o.challenge);
+	(o.allowCredentials || []).forEach(function(c){ c.id = b2buf(c.id); });
+	return o;
+}
+function serializeCredential(cred){
+	var r = cred.response;
+	var out = {id: cred.id, rawId: buf2b(cred.rawId), type: cred.type,
+		clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+		response: {clientDataJSON: buf2b(r.clientDataJSON)}};
+	if (r.attestationObject) {
+		out.response.attestationObject = buf2b(r.attestationObject);
+		if (r.getTransports) out.response.transports = r.getTransports();
+	} else {
+		out.response.authenticatorData = buf2b(r.authenticatorData);
+		out.response.signature = buf2b(r.signature);
+		out.response.userHandle = r.userHandle ? buf2b(r.userHandle) : null;
+	}
+	return out;
+}
+
+function doRegister(secret, label){
+	return postJSON("/auth/register/options", {}, {"X-Setup-Secret": secret})
+		.then(function(res){
+			return navigator.credentials.create({publicKey: decodeCreationOptions(res.options)})
+				.then(function(cred){
+					var ser = serializeCredential(cred);
+					return postJSON("/auth/register/verify",
+						{credential: ser, handle: res.handle, label: label || "passkey",
+						 transports: ser.response.transports || []},
+						{"X-Setup-Secret": secret});
+				});
+		});
+}
+function doLogin(){
+	return postJSON("/auth/login/options", {})
+		.then(function(res){
+			return navigator.credentials.get({publicKey: decodeRequestOptions(res.options)})
+				.then(function(cred){
+					return postJSON("/auth/login/verify",
+						{credential: serializeCredential(cred), handle: res.handle});
+				});
+		});
+}
+
+function renderLogin(){
+	document.getElementById("logout").style.display = "none";
+	var setup = location.hash === "#setup";
+	var html = '<div class="login-box">';
+	if (setup) {
+		html += '<b>Register a new passkey</b><p>Paste the setup secret from the VM, then register this device.</p>' +
+			'<p><input type="password" id="secret" placeholder="setup secret" autocomplete="off"></p>' +
+			'<p><input type="text" id="label" placeholder="device name (e.g. MacBook)" autocomplete="off"></p>' +
+			'<button class="btn primary" id="regBtn">Register passkey</button> ' +
+			'<a href="#" onclick="location.hash=\'\';renderLogin();return false;">back to login</a>';
+	} else {
+		html += '<b>Private dashboard.</b><p>Sign in with your passkey to view financial data.</p>' +
+			'<button class="btn primary" id="loginBtn">Sign in with passkey</button>' +
+			'<p class="sub"><a href="#setup" onclick="setTimeout(renderLogin,0)">First time on this device? Register a passkey</a></p>';
+	}
+	html += '<div class="err" id="autherr"></div></div>';
+	app.innerHTML = html;
+	var err = document.getElementById("autherr");
+	if (setup) {
+		document.getElementById("regBtn").onclick = function(){
+			err.textContent = "";
+			doRegister(document.getElementById("secret").value.trim(),
+				document.getElementById("label").value.trim())
+				.then(function(){ err.style.color="#0A6B3D"; err.textContent = "Passkey registered — signing in…";
+					return doLogin(); })
+				.then(function(){ location.hash=""; boot(); })
+				.catch(function(e){ err.style.color="#B00"; err.textContent = e.message; });
+		};
+	} else {
+		document.getElementById("loginBtn").onclick = function(){
+			err.textContent = "";
+			doLogin().then(boot).catch(function(e){ err.textContent = e.message; });
+		};
+	}
+}
+
+// ------------------------------------------------------------------- views ----
+var VIEW = "overview";
+var TXQ = {q:"", category:"", account:"", offset:0};
+var txCache = [];
+
+function shell(){
+	document.getElementById("logout").style.display = "";
+	app.innerHTML =
+		'<div class="tabs" id="tabs">' +
+			'<button data-v="overview">Overview</button>' +
+			'<button data-v="transactions">Transactions</button>' +
+			'<button data-v="spending">Spending</button>' +
+			'<button data-v="recurring">Recurring</button>' +
+			'<button id="refreshBtn" title="Trigger a bank sync">↻ Refresh</button>' +
+		'</div><div id="view"><p>Loading…</p></div>';
+	document.getElementById("tabs").addEventListener("click", function(e){
+		if (e.target.id === "refreshBtn") return doRefresh(e.target);
+		if (!e.target.getAttribute("data-v")) return;
+		VIEW = e.target.getAttribute("data-v");
+		paintTabs(); loadView();
+	});
+	document.getElementById("logout").onclick = function(e){
+		e.preventDefault();
+		postJSON("/auth/logout", {}).then(renderLogin).catch(renderLogin);
+	};
+	paintTabs();
+}
+function paintTabs(){
+	[].forEach.call(document.querySelectorAll("#tabs button[data-v]"), function(b){
+		b.classList.toggle("on", b.getAttribute("data-v") === VIEW);
+	});
+}
+function doRefresh(btn){
+	btn.disabled = true; btn.textContent = "↻ Syncing…";
+	postJSON("/refresh", {}).then(function(){
+		setTimeout(function(){ btn.disabled = false; btn.textContent = "↻ Refresh"; loadView(); }, 6000);
+	}).catch(function(){ btn.disabled = false; btn.textContent = "↻ Refresh"; });
+}
+function loadView(){
+	var v = document.getElementById("view");
+	v.innerHTML = "<p>Loading…</p>";
+	if (VIEW === "overview") loadOverview();
+	else if (VIEW === "transactions") { TXQ.offset = 0; txCache = []; loadTransactions(true); }
+	else if (VIEW === "spending") loadSpending();
+	else loadRecurring();
+}
+
+// Overview: stat cards + net-cash chart + accounts table
+function lineChart(series){
+	var W = 640, H = 120, pad = 6;
+	if (!series || series.length < 2)
+		return '<svg viewBox="0 0 '+W+' '+H+'"><text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" fill="#bbb" font-size="12">net-cash history builds up as daily syncs accumulate</text></svg>';
+	var vals = series.map(function(d){ return d[1]; });
+	var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+	var span = (max - min) || 1, n = series.length;
+	function X(i){ return pad + i*(W-2*pad)/(n-1); }
+	function Y(v){ return H-pad - (v-min)/span*(H-2*pad); }
+	var line = "";
+	for (var i=0;i<n;i++) line += (i?"L":"M")+X(i).toFixed(1)+","+Y(vals[i]).toFixed(1)+" ";
+	return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+		'<path d="'+line+'" fill="none" stroke="#0A6B3D" stroke-width="1.8" vector-effect="non-scaling-stroke"/>'+
+		'<circle cx="'+X(n-1).toFixed(1)+'" cy="'+Y(vals[n-1]).toFixed(1)+'" r="2.8" fill="#0A6B3D"/>'+
+		'<text x="'+pad+'" y="10" fill="#999" font-size="10">'+usd0(max)+'</text>'+
+		'<text x="'+pad+'" y="'+(H-2)+'" fill="#999" font-size="10">'+usd0(min)+'</text></svg>';
+}
+function loadOverview(){
+	getJSON("/overview").then(function(d){
+		var sync = document.getElementById("sync");
+		sync.textContent = d.last_sync ? "last sync " + new Date(d.last_sync).toLocaleString() : "";
+		var t = d.totals;
+		var html = '<div class="grid">' +
+			'<div class="card"><h3>Cash</h3><div class="big">'+usd(t.cash)+'</div><div class="sub">checking + savings</div></div>' +
+			'<div class="card"><h3>Credit card debt</h3><div class="big'+(t.credit_debt>0?" neg":"")+'">'+usd(t.credit_debt)+'</div><div class="sub">current balances</div></div>' +
+			'<div class="card"><h3>Net cash</h3><div class="big'+(t.net_cash<0?" neg":"")+'">'+usd(t.net_cash)+'</div><div class="sub">cash − credit debt</div></div>' +
+		'</div>';
+		html += '<div class="card chart" style="margin-top:16px"><h3>Net cash over time</h3>'+lineChart(d.net_cash_series)+'</div>';
+		if (d.sync_status === "error" && d.sync_error)
+			html += '<div class="empty"><b>Sync issue:</b> '+esc(d.sync_error)+'</div>';
+		if (!d.accounts.length) {
+			html += '<div class="empty"><b>No accounts yet.</b> ' +
+				'<a href="/finance/connect.html">Connect Wells Fargo / Chase via Teller</a> to get started.</div>';
+		} else {
+			html += '<h2>Accounts</h2><table><tr><th>Institution</th><th>Account</th><th>Type</th><th class="r">Balance</th><th class="r">Available</th><th>As of</th></tr>';
+			d.accounts.forEach(function(a){
+				var bal = a.ledger;  // liabilities already negative (SimpleFIN convention)
+				html += '<tr'+(a.status==="disconnected"?' class="warnrow"':'')+'><td>'+esc(a.institution)+'</td>'+
+					'<td>'+esc(a.name)+' ··'+esc(a.last_four)+(a.status==="disconnected"?' <span class="badge missed">reconnect</span>':'')+'</td>'+
+					'<td>'+esc(a.subtype || a.type)+'</td>'+
+					'<td class="r'+(bal<0?" neg":"")+'">'+usd(bal)+'</td>'+
+					'<td class="r">'+usd(a.available)+'</td>'+
+					'<td>'+shortDate(a.balance_date)+'</td></tr>';
+			});
+			html += '</table>';
+		}
+		document.getElementById("view").innerHTML = html;
+	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
+}
+
+// Transactions
+function loadTransactions(reset){
+	var qs = "?limit=100&offset=" + TXQ.offset;
+	if (TXQ.q) qs += "&q=" + encodeURIComponent(TXQ.q);
+	if (TXQ.category) qs += "&category=" + encodeURIComponent(TXQ.category);
+	if (TXQ.account) qs += "&account=" + encodeURIComponent(TXQ.account);
+	getJSON("/transactions" + qs).then(function(d){
+		txCache = reset ? d.transactions : txCache.concat(d.transactions);
+		var v = document.getElementById("view");
+		var cats = {}, accts = {};
+		txCache.forEach(function(t){ if(t.category) cats[t.category]=1; });
+		var html = '<div class="filters">' +
+			'<input type="search" id="txq" placeholder="search description / merchant" value="'+esc(TXQ.q)+'">' +
+			'<select id="txcat"><option value="">all categories</option></select>' +
+			'<button class="btn" id="txgo">Search</button>' +
+			'<span class="sub" style="align-self:center">'+d.total.toLocaleString()+' matching</span></div>';
+		html += '<table><tr><th>Date</th><th>Description</th><th>Account</th><th>Category</th><th class="r">Amount</th></tr>';
+		txCache.forEach(function(t){
+			html += '<tr><td>'+shortDate(t.date)+'</td>'+
+				'<td>'+esc(t.merchant || t.description)+(t.status==="pending"?' <span class="badge">pending</span>':'')+'</td>'+
+				'<td>'+esc((t.institution ? t.institution + " · " : "") + (t.account_name||""))+'</td>'+
+				'<td>'+esc(t.category||"")+'</td>'+
+				'<td class="r'+(t.amount<0?" neg":"")+'">'+usd(t.amount)+'</td></tr>';
+		});
+		html += '</table>';
+		if (txCache.length < d.total)
+			html += '<p><button class="btn" id="txmore">Load more ('+txCache.length+' / '+d.total+')</button></p>';
+		v.innerHTML = html;
+		var sel = document.getElementById("txcat");
+		Object.keys(cats).sort().forEach(function(c){
+			var o = document.createElement("option"); o.value = c; o.textContent = c;
+			if (c === TXQ.category) o.selected = true;
+			sel.appendChild(o);
+		});
+		function go(){
+			TXQ.q = document.getElementById("txq").value.trim();
+			TXQ.category = sel.value; TXQ.offset = 0; txCache = [];
+			loadTransactions(true);
+		}
+		document.getElementById("txgo").onclick = go;
+		document.getElementById("txq").addEventListener("keydown", function(e){ if(e.key==="Enter") go(); });
+		sel.onchange = go;
+		var more = document.getElementById("txmore");
+		if (more) more.onclick = function(){ TXQ.offset += 100; loadTransactions(false); };
+	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
+}
+
+// Spending
+var SPEND_BY = "category";
+function loadSpending(){
+	getJSON("/spending?by=" + SPEND_BY + "&months=6").then(function(d){
+		var html = '<div class="tabs">' +
+			'<button class="'+(SPEND_BY==="category"?"on":"")+'" id="byCat">By category</button>' +
+			'<button class="'+(SPEND_BY==="merchant"?"on":"")+'" id="byMer">By merchant</button></div>';
+		if (!d.months.length) html += '<div class="empty">No spending data yet.</div>';
+		d.months.slice().reverse().forEach(function(m){
+			var mom = m.mom_pct == null ? "" :
+				' <span class="sub">('+(m.mom_pct>0?"+":"")+m.mom_pct+'% vs prior)</span>';
+			html += '<h2>'+m.month+' — '+usd(m.total)+mom+'</h2><table>';
+			var maxSpend = m.items.length ? m.items[0].spend : 1;
+			m.items.slice(0,15).forEach(function(it){
+				var w = Math.max(2, Math.round(it.spend / maxSpend * 100));
+				html += '<tr><td style="width:180px">'+esc(it.name)+'</td>'+
+					'<td><div class="bar" style="width:100%"><i style="width:'+w+'%"></i></div></td>'+
+					'<td class="r" style="width:110px">'+usd(it.spend)+'</td>'+
+					'<td class="r sub" style="width:60px">'+it.count+'×</td></tr>';
+			});
+			html += '</table>';
+		});
+		document.getElementById("view").innerHTML = html;
+		document.getElementById("byCat").onclick = function(){ SPEND_BY="category"; loadSpending(); };
+		document.getElementById("byMer").onclick = function(){ SPEND_BY="merchant"; loadSpending(); };
+	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
+}
+
+// Recurring
+function loadRecurring(){
+	getJSON("/recurring").then(function(d){
+		var html;
+		if (!d.recurring.length) {
+			html = '<div class="empty">No recurring charges detected yet — needs a few months of history.</div>';
+		} else {
+			html = '<table><tr><th>Merchant</th><th>Period</th><th class="r">Typical</th><th class="r">Last</th><th>Next expected</th><th>Seen</th><th>Status</th></tr>';
+			d.recurring.forEach(function(r){
+				html += '<tr><td>'+esc(r.name)+'</td><td>'+esc(r.period)+'</td>'+
+					'<td class="r">'+usd(r.typical_amount)+'</td>'+
+					'<td class="r">'+usd(r.last_amount)+'</td>'+
+					'<td>'+shortDate(r.next_expected)+'</td>'+
+					'<td>'+r.occurrences+'× since '+shortDate(r.first_seen)+'</td>'+
+					'<td><span class="badge '+esc(r.status)+'">'+esc(r.status)+'</span></td></tr>';
+			});
+			html += '</table>';
+		}
+		html += '<p class="sub">Detected from posted charges with a regular cadence and stable amount. '+
+			'New = first detected recently · Changed = last amount differs from typical · Missed = expected charge did not arrive.</p>';
+		document.getElementById("view").innerHTML = html;
+	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
+}
+
+function showErr(e){
+	document.getElementById("view").innerHTML =
+		'<div class="empty">Could not load data ('+esc(e.message)+'). Is the finance-api service running?</div>';
+}
+
+function boot(){
+	if (location.hash === "#setup") { renderLogin(); return; }
+	getJSON("/auth/status").then(function(s){
+		if (!s.authenticated) return renderLogin();
+		shell(); loadView();
+	}).catch(function(){ renderLogin(); });
+}
+boot();
+</script>
+</body>
+</html>
