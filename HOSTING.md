@@ -169,25 +169,26 @@ caddy hash-password --plaintext 'NEWPASS'   # paste hash into /etc/caddy/Caddyfi
 ## Finance dashboard service
 
 `/finance/` is a **private** dashboard (WebAuthn passkey login, no Basic Auth)
-showing bank balances/transactions synced read-only from SimpleFIN Bridge
-(added 2026-08-11):
+showing bank balances/transactions synced read-only from Plaid (production,
+Transactions product; added 2026-08-11, Plaid since 2026-08-12 — a retired
+SimpleFIN code path remains as fallback):
 
 | Component | Value |
 |---|---|
 | Service | `finance-api.service` (systemd, `Restart=always`, `MemoryMax=200M`, runs as user `finance`, hardened: `ProtectSystem=strict`) |
 | App | `/opt/finance-api/server.py` — Python on `127.0.0.1:8644` under `/opt/finance-api/venv` (single dep: `webauthn==2.7.1`) |
 | Storage | `/opt/finance-api/finance.db` (bank data) + `auth.db` (passkeys/sessions — never served) |
-| Secrets | `/opt/finance-api/secrets/` (700): `simplefin.json` (access URLs), `setup.secret` (gates passkey registration), `mcp.token` (bearer for DB snapshot/refresh) |
+| Secrets | `/opt/finance-api/secrets/` (700): `plaid.json` (client_id/secret/env/redirect_uri/items), `setup.secret` (gates passkey registration), `mcp.token` (bearer for DB snapshot/refresh) |
 | Caddy | `reverse_proxy /finance/api* → :8644` in the **https block only** (WebAuthn needs the real origin; no plain-HTTP exposure) |
 | Sync | in-process thread: on start + every 6h + on `POST /finance/api/refresh` |
 
 Endpoints (all under `verma7.com/finance/api/`): `ping` (public);
 `auth/register/*` (gated by `X-Setup-Secret` header, rate-limited);
 `auth/login/*` (rate-limited, mints 30-day session cookie); `overview`,
-`transactions`, `spending`, `recurring`, `enroll` (session);
-`overrides`, `account-type` (session or MCP bearer);
-`refresh` (session or MCP bearer); `db` (MCP bearer — streams a snapshot of
-finance.db only, never auth.db).
+`transactions`, `spending`, `recurring`, `enroll` (SimpleFIN),
+`plaid/link-token`, `plaid/exchange` (session); `overrides`, `account-type`
+(session or MCP bearer); `refresh` (session or MCP bearer); `db` (MCP
+bearer — streams a snapshot of finance.db only, never auth.db).
 
 Source lives in `Fable/finance/` on the MacBook (`server.py` + `mcp/` MCP
 server + `DEPLOY.md` runbook). Service update: `gcloud compute scp server.py
@@ -206,8 +207,9 @@ sudo cat /opt/finance-api/secrets/setup.secret
 # rotate the MCP token (then update ~/.config/finance-mcp/token on the Mac)
 openssl rand -hex 32 | sudo tee /opt/finance-api/secrets/mcp.token
 sudo systemctl restart finance-api
-# bank connections: managed at https://bridge.simplefin.org (re-link there,
-# then paste a new setup token at https://verma7.com/finance/connect.html)
+# bank connections: managed at https://dashboard.plaid.com; link/re-link
+# items via "Connect with Plaid" at https://verma7.com/finance/connect.html
+# (ITEM_LOGIN_REQUIRED sync errors on the dashboard header = re-link needed)
 ```
 
 ## History / legacy
