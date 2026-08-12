@@ -181,6 +181,7 @@ SimpleFIN code path remains as fallback):
 | Secrets | `/opt/finance-api/secrets/` (700): `plaid.json` (client_id/secret/env/redirect_uri/items), `setup.secret` (gates passkey registration), `mcp.token` (bearer for DB snapshot/refresh) |
 | Caddy | `reverse_proxy /finance/api* → :8644` in the **https block only** (WebAuthn needs the real origin; no plain-HTTP exposure) |
 | Sync | in-process thread: on start + every 6h + on `POST /finance/api/refresh` |
+| Weekly email | `finance-weekly.timer` Fri 18:00 PT → `server.py --weekly-email`; SMTP creds in `secrets/smtp.json` |
 
 Endpoints (all under `verma7.com/finance/api/`): `ping` (public);
 `auth/register/*` (gated by `X-Setup-Secret` header, rate-limited);
