@@ -8,6 +8,7 @@
 	<link rel="icon" href="/images/A.png" />
 	<link rel="stylesheet" href="/style.css" type="text/css" />
 	<title>Connect a bank - verma7.com</title>
+	<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 	<style>
 		.textContainer { font-size: 0.62em; }
 		.box { border:2px dashed #00009C; padding:18px; margin:12px 0; }
@@ -25,6 +26,7 @@
 		<div class="textContainer">
 			<h1><a class="header" href="/">verma7.com</a></h1>
 			<h2>Connect a bank</h2>
+			<div class="box" id="plaidbox" style="display:none"></div>
 			<div class="box" id="box"><p>Checking session…</p></div>
 			<div class="footer"><a href="/finance/">Back to dashboard</a></div>
 		</div>
@@ -42,6 +44,7 @@ fetch("/finance/api/auth/status", {credentials:"same-origin"})
 				'<p><a href="/finance/">Go to the dashboard to sign in</a>, then come back.</p>';
 			return;
 		}
+		renderPlaid();
 		box.innerHTML =
 			'<b>Connect via SimpleFIN Bridge</b>' +
 			'<ol>' +
@@ -72,6 +75,48 @@ fetch("/finance/api/auth/status", {credentials:"same-origin"})
 		};
 	})
 	.catch(function(e){ box.innerHTML = '<b>Error:</b> ' + e.message; });
+
+function renderPlaid(){
+	var pb = document.getElementById("plaidbox");
+	pb.style.display = "";
+	pb.innerHTML = '<b>Connect via Plaid</b>' +
+		'<p>Best data quality and automatic categories. You will authenticate with ' +
+		'your bank inside Plaid Link — credentials never touch verma7.com.</p>' +
+		'<button class="btn" id="plaidgo">Connect with Plaid</button><div id="plaidmsg"></div>';
+	document.getElementById("plaidgo").onclick = function(){
+		var msg = document.getElementById("plaidmsg");
+		msg.className = ""; msg.textContent = "Requesting link token…";
+		fetch("/finance/api/plaid/link-token", {method:"POST", credentials:"same-origin",
+			headers:{"Content-Type":"application/json"}, body:"{}"})
+		.then(function(r){ return r.json(); })
+		.then(function(j){
+			if (!j.link_token) { msg.className = "err"; msg.textContent = j.error || "no link token"; return; }
+			msg.textContent = "";
+			var handler = Plaid.create({
+				token: j.link_token,
+				onSuccess: function(public_token, metadata){
+					msg.className = "ok"; msg.textContent = "Linked — saving…";
+					fetch("/finance/api/plaid/exchange", {
+						method:"POST", credentials:"same-origin",
+						headers:{"Content-Type":"application/json"},
+						body: JSON.stringify({
+							public_token: public_token,
+							institution: (metadata.institution && metadata.institution.name) || ""
+						})
+					}).then(function(r){ return r.json(); }).then(function(j2){
+						if (j2.ok) { msg.textContent = "Connected! Initial sync started — data appears on the dashboard shortly."; }
+						else { msg.className = "err"; msg.textContent = j2.error || "exchange failed"; }
+					}).catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
+				},
+				onExit: function(err){
+					if (err) { msg.className = "err"; msg.textContent = "Plaid Link exited: " + (err.display_message || err.error_code || "cancelled"); }
+				}
+			});
+			handler.open();
+		})
+		.catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
+	};
+}
 </script>
 </body>
 </html>
