@@ -82,12 +82,16 @@ function renderPlaid(){
 	pb.innerHTML = '<b>Connect via Plaid</b>' +
 		'<p>Best data quality and automatic categories. You will authenticate with ' +
 		'your bank inside Plaid Link — credentials never touch verma7.com.</p>' +
-		'<button class="btn" id="plaidgo">Connect with Plaid</button><div id="plaidmsg"></div>';
-	document.getElementById("plaidgo").onclick = function(){
+		'<button class="btn" id="plaidgo">Connect a bank</button> ' +
+		'<button class="btn" id="plaidinv">Connect a brokerage</button>' +
+		'<div id="plaidmsg"></div>';
+	document.getElementById("plaidgo").onclick = function(){ plaidLink("transactions"); };
+	document.getElementById("plaidinv").onclick = function(){ plaidLink("investments"); };
+	function plaidLink(mode){
 		var msg = document.getElementById("plaidmsg");
 		msg.className = ""; msg.textContent = "Requesting link token…";
 		fetch("/finance/api/plaid/link-token", {method:"POST", credentials:"same-origin",
-			headers:{"Content-Type":"application/json"}, body:"{}"})
+			headers:{"Content-Type":"application/json"}, body: JSON.stringify({mode: mode})})
 		.then(function(r){ return r.json(); })
 		.then(function(j){
 			if (!j.link_token) { msg.className = "err"; msg.textContent = j.error || "no link token"; return; }
@@ -115,7 +119,7 @@ function renderPlaid(){
 			handler.open();
 		})
 		.catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
-	};
+	}
 }
 </script>
 </body>

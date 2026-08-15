@@ -274,6 +274,7 @@ function loadOverview(){
 			'<div class="card"><h3>Cash</h3><div class="big">'+usd(t.cash)+'</div><div class="sub">checking + savings</div></div>' +
 			'<div class="card"><h3>Credit card debt</h3><div class="big'+(t.credit_debt>0?" neg":"")+'">'+usd(t.credit_debt)+'</div><div class="sub">current balances</div></div>' +
 			'<div class="card"><h3>Net cash</h3><div class="big'+(t.net_cash<0?" neg":"")+'">'+usd(t.net_cash)+'</div><div class="sub">cash − credit debt</div></div>' +
+			(t.investments ? '<div class="card"><h3>Investments</h3><div class="big">'+usd(t.investments)+'</div><div class="sub">brokerage value</div></div>' : '') +
 		'</div>';
 		html += '<div class="card chart" style="margin-top:16px"><h3>Net cash over time</h3>'+lineChart(d.net_cash_series)+'</div>';
 		if (d.sync_status === "error" && d.sync_error)
