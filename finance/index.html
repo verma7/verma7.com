@@ -6,84 +6,164 @@
 	<meta name="robots" content="noindex, nofollow" />
 	<meta name="description" content="Private finance dashboard" />
 	<link rel="icon" href="/images/A.png" />
-	<link rel="stylesheet" href="/style.css" type="text/css" />
 	<title>Finance - verma7.com</title>
 	<style>
-		.textContainer { font-size: 0.62em; }
-		.hd { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:10px; }
-		.sync { color:#777; font-size:0.9em; }
-		.tabs { margin: 6px 0 18px; }
-		.tabs button, .btn {
-			font-family: inherit; font-size:0.9em; cursor:pointer;
-			border:1px solid #999; background:#f4f4f4; color:#333;
-			padding:4px 12px; margin-right:6px; border-radius:3px;
-		}
-		.tabs button.on { background:#0A6B3D; color:#fff; border-color:#0A6B3D; }
-		.btn.primary { background:#0A6B3D; color:#fff; border-color:#0A6B3D; }
-		.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
-		.card {
-			border:1px solid #ddd; border-top:3px solid #0A6B3D; border-radius:4px;
-			padding:12px 14px; background:#fff; box-shadow:0 1px 3px #0000000d;
-		}
-		.card h3 { margin:0 0 2px; color:#333; font-size:1.05em; }
-		.big { font-size:1.8em; color:#111; font-weight:bold; line-height:1.1; }
-		.neg { color:#B00; }
-		.sub { color:#888; font-size:0.85em; margin-top:2px; }
-		.chart svg { display:block; width:100%; height:120px; margin-top:8px; overflow:visible; }
-		table { border-collapse:collapse; width:100%; font-size:0.95em; margin-top:6px; }
-		th, td { text-align:left; padding:4px 10px 4px 0; border-bottom:1px solid #eee; }
-		th { color:#0A6B3D; }
-		td.r, th.r { text-align:right; }
-		.filters { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
-		.filters input, .filters select {
-			font-family:inherit; font-size:0.9em; padding:4px 6px;
-			border:1px solid #bbb; border-radius:3px;
-		}
-		.badge { font-size:0.8em; padding:1px 7px; border-radius:9px; color:#fff; background:#888; }
-		.badge.new { background:#0A6B3D; } .badge.changed { background:#c77c00; }
-		.badge.missed { background:#B00; } .badge.active { background:#557; }
-		.bar { background:#0A6B3D22; height:16px; border-radius:2px; }
-		.bar i { display:block; height:100%; background:#0A6B3D; border-radius:2px; }
-		.empty, .login-box { border:2px dashed #00009C; padding:18px; margin:12px 0; }
-		.login-box input { font-family:inherit; font-size:0.95em; padding:5px 8px; border:1px solid #bbb; border-radius:3px; width:280px; max-width:100%; }
-		.err { color:#B00; margin-top:8px; }
-		.footer { padding-top:18px; }
-		.warnrow { background:#fff6e6; }
+	:root {
+		--ground: #FAFAF8; --surface: #ffffff; --raised: #f4f6f4;
+		--ink: #131714; --ink-2: #4d564f; --ink-3: #838b85;
+		--accent: #0A6B3D; --accent-hi: #0d8a4f; --accent-soft: #0A6B3D14;
+		--rule: #e3e6e2; --grid: #edefec;
+		--neg: #B00020; --warn: #B05500;
+		--s-blue: #2a78d6;
+		--glow: none;
+		color-scheme: light;
+	}
+	[data-theme="dark"] {
+		--ground: #0E1210; --surface: #151A17; --raised: #1B211D;
+		--ink: #ECF1ED; --ink-2: #A8B3AB; --ink-3: #6E7A72;
+		--accent: #3DD68C; --accent-hi: #5FE6A4; --accent-soft: #3DD68C1A;
+		--rule: #242B26; --grid: #1D2420;
+		--neg: #E06C5A; --warn: #E0A458;
+		--s-blue: #3987e5;
+		--glow: 0 0 24px #3DD68C22;
+		color-scheme: dark;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; background: var(--ground); }
+	body {
+		margin: 0; background: var(--ground); color: var(--ink);
+		font: 15px/1.5 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+		transition: background .25s, color .25s;
+	}
+	.wrap { max-width: 1060px; margin: 0 auto; padding: 22px 20px 64px; }
+	.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+	.brand { font-family: Charter, Georgia, serif; font-size: 1.25rem; font-weight: 700; }
+	.brand a { color: var(--ink); text-decoration: none; }
+	.brand span { color: var(--accent); }
+	.topright { display: flex; align-items: center; gap: 14px; font-size: .8rem; color: var(--ink-3); }
+	.toggle { cursor: pointer; border: 1px solid var(--rule); background: var(--surface);
+		color: var(--ink-2); border-radius: 20px; padding: 3px 12px; font: inherit; }
+	.toggle:hover { border-color: var(--accent); color: var(--accent); }
+	a { color: var(--accent); }
+
+	.hero { margin-top: 26px; background: var(--surface); border: 1px solid var(--rule);
+		border-radius: 12px; padding: 24px 26px 10px; box-shadow: var(--glow); }
+	.hero .label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+		color: var(--accent); font-weight: 700; }
+	.hero .big {
+		font-family: Charter, Georgia, serif; font-size: 2.9rem; font-weight: 700;
+		line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin: 4px 0 2px;
+	}
+	.hero .delta { font-size: .88rem; color: var(--ink-2); }
+	.hero .delta b.up { color: var(--accent); } .hero .delta b.down { color: var(--neg); }
+	.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 14px; }
+	.stat { background: var(--raised); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; }
+	.stat .k { font-family: Charter, Georgia, serif; font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.stat .k.neg { color: var(--neg); }
+	.stat .l { font-size: .74rem; color: var(--ink-3); margin-top: 1px; }
+	.hero svg { display: block; width: 100%; height: 150px; margin: 14px 0 4px; overflow: visible; }
+
+	.tabs { margin: 22px 0 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+	.tabs button, .btn {
+		font: inherit; font-size: .86rem; cursor: pointer;
+		border: 1px solid var(--rule); background: var(--surface); color: var(--ink-2);
+		padding: 6px 15px; border-radius: 20px;
+	}
+	.tabs button:hover { border-color: var(--accent); color: var(--accent); }
+	.tabs button.on { background: var(--accent); color: var(--ground); border-color: var(--accent); font-weight: 600; }
+	.btn.primary { background: var(--accent); color: var(--ground); border-color: var(--accent); font-weight: 600; }
+
+	.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+	@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+	.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px 12px; margin-top: 14px; }
+	.panel h3 { margin: 0 0 10px; font-family: Charter, Georgia, serif; font-size: 1rem; color: var(--ink); }
+	.panel h3 small { color: var(--ink-3); font-weight: normal; font-family: inherit; }
+	svg { display: block; width: 100%; overflow: visible; }
+	svg text { font: 10.5px -apple-system, system-ui, sans-serif; fill: var(--ink-3); }
+	svg .dl { fill: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+	table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+	th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); }
+	th { color: var(--ink-3); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+	td.r, th.r { text-align: right; }
+	td.neg { color: var(--neg); }
+	tr.inst td { font-weight: 700; color: var(--accent); border-bottom: none; padding-top: 12px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; }
+	.badge { font-size: .68rem; padding: 1px 8px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+	.badge.gray { background: var(--raised); color: var(--ink-3); }
+	.badge.warn { background: #B0550022; color: var(--warn); }
+
+	.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+	.filters input, .filters select {
+		font: inherit; font-size: .86rem; padding: 6px 10px; color: var(--ink);
+		border: 1px solid var(--rule); border-radius: 7px; background: var(--surface);
+	}
+	.bar { background: var(--accent-soft); height: 14px; border-radius: 3px; }
+	.bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+	.login-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px;
+		padding: 30px; margin: 60px auto; max-width: 430px; text-align: center; box-shadow: var(--glow); }
+	.login-box h2 { font-family: Charter, Georgia, serif; margin: 0 0 6px; }
+	.login-box p { color: var(--ink-2); font-size: .9rem; }
+	.login-box input { font: inherit; padding: 8px 10px; border: 1px solid var(--rule);
+		border-radius: 7px; background: var(--raised); color: var(--ink); width: 100%; margin-top: 8px; }
+	.err { color: var(--neg); margin-top: 10px; font-size: .86rem; }
+	.empty { border: 1px dashed var(--rule); border-radius: 10px; padding: 18px; margin: 12px 0; color: var(--ink-2); }
+	.sub { color: var(--ink-3); font-size: .8rem; }
+	#tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--ground);
+		font-size: .76rem; padding: 4px 9px; border-radius: 5px; opacity: 0; z-index: 10;
+		font-variant-numeric: tabular-nums; white-space: nowrap; transition: opacity .08s; }
+	@media (prefers-reduced-motion: reduce) { #tip, body { transition: none; } }
 	</style>
 </head>
 <body>
-	<div class="container">
-		<div class="textContainer">
-			<div class="hd">
-				<h1><a class="header" href="/">verma7.com</a></h1>
-				<span class="sync" id="sync"></span>
+	<div class="wrap">
+		<div class="top">
+			<div class="brand"><a href="/">verma7<span>.finance</span></a></div>
+			<div class="topright">
+				<span id="sync"></span>
+				<button class="toggle" id="themeToggle">◐ theme</button>
+				<a href="/finance/connect.html">+ connect</a>
+				<a href="#" id="logout" style="display:none">log out</a>
 			</div>
-			<h2>Finance</h2>
-			<div id="app"><p>Loading…</p></div>
-			<div class="footer"><a href="/">Home</a> · <a href="/finance/connect.html">Connect a bank</a> · <a href="#" id="logout" style="display:none">Log out</a></div>
 		</div>
+		<div id="app"><p class="sub" style="margin-top:40px">Loading…</p></div>
 	</div>
+	<div id="tip" role="status"></div>
 
 <script>
 "use strict";
 var API = "/finance/api";
 var app = document.getElementById("app");
 
+// ------------------------------------------------------------------ theme ----
+(function(){
+	var saved = localStorage.getItem("fin_theme");
+	var mode = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+	document.documentElement.setAttribute("data-theme", mode);
+	document.getElementById("themeToggle").onclick = function(){
+		mode = mode === "dark" ? "light" : "dark";
+		document.documentElement.setAttribute("data-theme", mode);
+		localStorage.setItem("fin_theme", mode);
+	};
+})();
+
 // ---------------------------------------------------------------- helpers ----
 function esc(s){ var d = document.createElement("div"); d.textContent = (s==null?"":String(s)); return d.innerHTML; }
 function usd(n){
 	if (n === null || n === undefined) return "–";
-	var sign = n < 0 ? "-" : "";
-	return sign + "$" + Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+	return (n<0?"-":"") + "$" + Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
 }
-function usd0(n){
+function usdK(n){
 	if (n === null || n === undefined) return "–";
-	return (n<0?"-":"") + "$" + Math.round(Math.abs(n)).toLocaleString();
+	var a = Math.abs(n), s = n<0?"-":"";
+	if (a >= 1e6) return s+"$"+(a/1e6).toFixed(2)+"M";
+	if (a >= 1e4) return s+"$"+Math.round(a/1000)+"k";
+	if (a >= 1e3) return s+"$"+(a/1000).toFixed(1)+"k";
+	return s+"$"+Math.round(a);
 }
 function shortDate(iso){
 	if(!iso) return "";
 	var d = new Date(iso + (iso.length === 10 ? "T12:00:00" : ""));
-	return isNaN(d) ? iso.slice(0,10) : d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+	return isNaN(d) ? String(iso).slice(0,10) : d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
 }
 function getJSON(path){
 	return fetch(API + path, {credentials:"same-origin"}).then(function(r){
@@ -98,8 +178,14 @@ function postJSON(path, body, headers){
 		return r.json().then(function(j){ if(!r.ok) throw new Error(j.error || r.status); return j; });
 	});
 }
-
-// base64url <-> ArrayBuffer for WebAuthn
+var tip = document.getElementById("tip");
+function hover(el, text){
+	el.addEventListener("mousemove", function(e){
+		tip.textContent = text; tip.style.opacity = 1;
+		tip.style.left = (e.clientX + 12) + "px"; tip.style.top = (e.clientY - 30) + "px";
+	});
+	el.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
+}
 function b2buf(s){
 	s = s.replace(/-/g,"+").replace(/_/g,"/"); while (s.length % 4) s += "=";
 	var bin = atob(s), b = new Uint8Array(bin.length);
@@ -114,8 +200,7 @@ function buf2b(buf){
 
 // ----------------------------------------------------------------- passkey ----
 function decodeCreationOptions(o){
-	o.challenge = b2buf(o.challenge);
-	o.user.id = b2buf(o.user.id);
+	o.challenge = b2buf(o.challenge); o.user.id = b2buf(o.user.id);
 	(o.excludeCredentials || []).forEach(function(c){ c.id = b2buf(c.id); });
 	return o;
 }
@@ -139,45 +224,37 @@ function serializeCredential(cred){
 	}
 	return out;
 }
-
 function doRegister(secret, label){
-	return postJSON("/auth/register/options", {}, {"X-Setup-Secret": secret})
-		.then(function(res){
-			return navigator.credentials.create({publicKey: decodeCreationOptions(res.options)})
-				.then(function(cred){
-					var ser = serializeCredential(cred);
-					return postJSON("/auth/register/verify",
-						{credential: ser, handle: res.handle, label: label || "passkey",
-						 transports: ser.response.transports || []},
-						{"X-Setup-Secret": secret});
-				});
+	return postJSON("/auth/register/options", {}, {"X-Setup-Secret": secret}).then(function(res){
+		return navigator.credentials.create({publicKey: decodeCreationOptions(res.options)}).then(function(cred){
+			var ser = serializeCredential(cred);
+			return postJSON("/auth/register/verify",
+				{credential: ser, handle: res.handle, label: label || "passkey",
+				 transports: ser.response.transports || []}, {"X-Setup-Secret": secret});
 		});
+	});
 }
 function doLogin(){
-	return postJSON("/auth/login/options", {})
-		.then(function(res){
-			return navigator.credentials.get({publicKey: decodeRequestOptions(res.options)})
-				.then(function(cred){
-					return postJSON("/auth/login/verify",
-						{credential: serializeCredential(cred), handle: res.handle});
-				});
+	return postJSON("/auth/login/options", {}).then(function(res){
+		return navigator.credentials.get({publicKey: decodeRequestOptions(res.options)}).then(function(cred){
+			return postJSON("/auth/login/verify", {credential: serializeCredential(cred), handle: res.handle});
 		});
+	});
 }
-
 function renderLogin(){
 	document.getElementById("logout").style.display = "none";
 	var setup = location.hash === "#setup";
 	var html = '<div class="login-box">';
 	if (setup) {
-		html += '<b>Register a new passkey</b><p>Paste the setup secret from the VM, then register this device.</p>' +
-			'<p><input type="password" id="secret" placeholder="setup secret" autocomplete="off"></p>' +
-			'<p><input type="text" id="label" placeholder="device name (e.g. MacBook)" autocomplete="off"></p>' +
-			'<button class="btn primary" id="regBtn">Register passkey</button> ' +
-			'<a href="#" onclick="location.hash=\'\';renderLogin();return false;">back to login</a>';
+		html += '<h2>Register a passkey</h2><p>Paste the setup secret from the VM, then register this device.</p>' +
+			'<input type="password" id="secret" placeholder="setup secret" autocomplete="off">' +
+			'<input type="text" id="label" placeholder="device name" autocomplete="off">' +
+			'<p><button class="btn primary" id="regBtn">Register passkey</button></p>' +
+			'<a href="#" onclick="location.hash=\'\';renderLogin();return false;">back to sign in</a>';
 	} else {
-		html += '<b>Private dashboard.</b><p>Sign in with your passkey to view financial data.</p>' +
-			'<button class="btn primary" id="loginBtn">Sign in with passkey</button>' +
-			'<p class="sub"><a href="#setup" onclick="setTimeout(renderLogin,0)">First time on this device? Register a passkey</a></p>';
+		html += '<h2>verma7.finance</h2><p>Private household dashboard.</p>' +
+			'<p><button class="btn primary" id="loginBtn">Sign in with passkey</button></p>' +
+			'<p class="sub"><a href="#setup" onclick="setTimeout(renderLogin,0)">First device? Register a passkey</a></p>';
 	}
 	html += '<div class="err" id="autherr"></div></div>';
 	app.innerHTML = html;
@@ -187,10 +264,9 @@ function renderLogin(){
 			err.textContent = "";
 			doRegister(document.getElementById("secret").value.trim(),
 				document.getElementById("label").value.trim())
-				.then(function(){ err.style.color="#0A6B3D"; err.textContent = "Passkey registered — signing in…";
-					return doLogin(); })
+				.then(function(){ return doLogin(); })
 				.then(function(){ location.hash=""; boot(); })
-				.catch(function(e){ err.style.color="#B00"; err.textContent = e.message; });
+				.catch(function(e){ err.textContent = e.message; });
 		};
 	} else {
 		document.getElementById("loginBtn").onclick = function(){
@@ -200,21 +276,21 @@ function renderLogin(){
 	}
 }
 
-// ------------------------------------------------------------------- views ----
+// ------------------------------------------------------------------- shell ----
 var VIEW = "overview";
-var TXQ = {q:"", category:"", account:"", offset:0};
+var TXQ = {q:"", category:"", offset:0};
 var txCache = [];
-
 function shell(){
 	document.getElementById("logout").style.display = "";
 	app.innerHTML =
+		'<div id="hero"></div>' +
 		'<div class="tabs" id="tabs">' +
 			'<button data-v="overview">Overview</button>' +
 			'<button data-v="transactions">Transactions</button>' +
 			'<button data-v="spending">Spending</button>' +
 			'<button data-v="recurring">Recurring</button>' +
-			'<button id="refreshBtn" title="Trigger a bank sync">↻ Refresh</button>' +
-		'</div><div id="view"><p>Loading…</p></div>';
+			'<button id="refreshBtn" title="Trigger a bank sync">↻ sync</button>' +
+		'</div><div id="view"></div>';
 	document.getElementById("tabs").addEventListener("click", function(e){
 		if (e.target.id === "refreshBtn") return doRefresh(e.target);
 		if (!e.target.getAttribute("data-v")) return;
@@ -233,99 +309,215 @@ function paintTabs(){
 	});
 }
 function doRefresh(btn){
-	btn.disabled = true; btn.textContent = "↻ Syncing…";
+	btn.disabled = true; btn.textContent = "↻ syncing…";
 	postJSON("/refresh", {}).then(function(){
-		setTimeout(function(){ btn.disabled = false; btn.textContent = "↻ Refresh"; loadView(); }, 6000);
-	}).catch(function(){ btn.disabled = false; btn.textContent = "↻ Refresh"; });
+		setTimeout(function(){ btn.disabled = false; btn.textContent = "↻ sync"; boot(); }, 8000);
+	}).catch(function(){ btn.disabled = false; btn.textContent = "↻ sync"; });
 }
 function loadView(){
 	var v = document.getElementById("view");
-	v.innerHTML = "<p>Loading…</p>";
-	if (VIEW === "overview") loadOverview();
+	v.innerHTML = '<p class="sub">Loading…</p>';
+	if (VIEW === "overview") renderOverviewPanels(window.__ov);
 	else if (VIEW === "transactions") { TXQ.offset = 0; txCache = []; loadTransactions(true); }
 	else if (VIEW === "spending") loadSpending();
 	else loadRecurring();
 }
 
-// Overview: stat cards + net-cash chart + accounts table
-function lineChart(series){
-	var W = 640, H = 120, pad = 6;
-	if (!series || series.length < 2)
-		return '<svg viewBox="0 0 '+W+' '+H+'"><text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" fill="#bbb" font-size="12">net-cash history builds up as daily syncs accumulate</text></svg>';
-	var vals = series.map(function(d){ return d[1]; });
-	var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
-	var span = (max - min) || 1, n = series.length;
-	function X(i){ return pad + i*(W-2*pad)/(n-1); }
-	function Y(v){ return H-pad - (v-min)/span*(H-2*pad); }
-	var line = "";
-	for (var i=0;i<n;i++) line += (i?"L":"M")+X(i).toFixed(1)+","+Y(vals[i]).toFixed(1)+" ";
-	return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
-		'<path d="'+line+'" fill="none" stroke="#0A6B3D" stroke-width="1.8" vector-effect="non-scaling-stroke"/>'+
-		'<circle cx="'+X(n-1).toFixed(1)+'" cy="'+Y(vals[n-1]).toFixed(1)+'" r="2.8" fill="#0A6B3D"/>'+
-		'<text x="'+pad+'" y="10" fill="#999" font-size="10">'+usd0(max)+'</text>'+
-		'<text x="'+pad+'" y="'+(H-2)+'" fill="#999" font-size="10">'+usd0(min)+'</text></svg>';
+// -------------------------------------------------------------- svg helpers ---
+function svgEl(w, h){
+	var s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	s.setAttribute("viewBox", "0 0 " + w + " " + h);
+	return s;
 }
-function loadOverview(){
-	getJSON("/overview").then(function(d){
-		var sync = document.getElementById("sync");
-		sync.textContent = d.last_sync ? "last sync " + new Date(d.last_sync).toLocaleString() : "";
-		var t = d.totals;
-		var html = '<div class="grid">' +
-			'<div class="card"><h3>Cash</h3><div class="big">'+usd(t.cash)+'</div><div class="sub">checking + savings</div></div>' +
-			'<div class="card"><h3>Credit card debt</h3><div class="big'+(t.credit_debt>0?" neg":"")+'">'+usd(t.credit_debt)+'</div><div class="sub">current balances</div></div>' +
-			'<div class="card"><h3>Net cash</h3><div class="big'+(t.net_cash<0?" neg":"")+'">'+usd(t.net_cash)+'</div><div class="sub">cash − credit debt</div></div>' +
-			(t.investments ? '<div class="card"><h3>Investments</h3><div class="big">'+usd(t.investments)+'</div><div class="sub">brokerage value</div></div>' : '') +
-		'</div>';
-		html += '<div class="card chart" style="margin-top:16px"><h3>Net cash over time</h3>'+lineChart(d.net_cash_series)+'</div>';
-		if (d.sync_status === "error" && d.sync_error)
-			html += '<div class="empty"><b>Sync issue:</b> '+esc(d.sync_error)+'</div>';
-		if (!d.accounts.length) {
-			html += '<div class="empty"><b>No accounts yet.</b> ' +
-				'<a href="/finance/connect.html">Connect Wells Fargo / Chase via Teller</a> to get started.</div>';
-		} else {
-			html += '<h2>Accounts</h2><table><tr><th>Institution</th><th>Account</th><th>Type</th><th class="r">Balance</th><th class="r">Available</th><th>As of</th></tr>';
-			d.accounts.forEach(function(a){
-				var bal = a.ledger;  // liabilities already negative (SimpleFIN convention)
-				html += '<tr'+(a.status==="disconnected"?' class="warnrow"':'')+'><td>'+esc(a.institution)+'</td>'+
-					'<td>'+esc(a.name)+' ··'+esc(a.last_four)+(a.status==="disconnected"?' <span class="badge missed">reconnect</span>':'')+'</td>'+
-					'<td>'+esc(a.subtype || a.type)+'</td>'+
-					'<td class="r'+(bal<0?" neg":"")+'">'+usd(bal)+'</td>'+
-					'<td class="r">'+usd(a.available)+'</td>'+
-					'<td>'+shortDate(a.balance_date)+'</td></tr>';
-			});
-			html += '</table>';
-		}
-		document.getElementById("view").innerHTML = html;
-	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
+function el(tag, attrs){
+	var n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+	for (var k in attrs) n.setAttribute(k, attrs[k]);
+	return n;
 }
 
-// Transactions
+// -------------------------------------------------------------------- hero ----
+function renderHero(d){
+	var t = d.totals;
+	var nw = (d.net_worth_series.length ? d.net_worth_series[d.net_worth_series.length-1][1] : t.net_cash + (t.investments||0));
+	var first = d.net_worth_series.length ? d.net_worth_series[0] : null;
+	var delta = first ? nw - first[1] : null;
+	var hero = document.getElementById("hero");
+	var deltaHtml = "";
+	if (delta !== null && d.net_worth_series.length > 1) {
+		var cls = delta >= 0 ? "up" : "down", sign = delta >= 0 ? "+" : "";
+		deltaHtml = '<div class="delta"><b class="'+cls+'">'+sign+usdK(delta)+'</b> since '+shortDate(first[0])+' · tracked across '+d.accounts.length+' accounts</div>';
+	} else {
+		deltaHtml = '<div class="delta">tracked across '+d.accounts.length+' accounts — history builds daily</div>';
+	}
+	hero.innerHTML = '<div class="hero"><div class="label">Household net worth (tracked)</div>' +
+		'<div class="big">'+usd(nw)+'</div>' + deltaHtml +
+		'<div id="nwChart"></div>' +
+		'<div class="stats">' +
+		'<div class="stat"><div class="k">'+usdK(t.investments||0)+'</div><div class="l">investments</div></div>' +
+		'<div class="stat"><div class="k">'+usdK(t.cash)+'</div><div class="l">cash</div></div>' +
+		'<div class="stat"><div class="k'+(t.credit_debt>0?" neg":"")+'">'+usdK(t.credit_debt)+'</div><div class="l">cards owe</div></div>' +
+		'<div class="stat"><div class="k">'+usdK(t.net_cash)+'</div><div class="l">net cash</div></div>' +
+		'</div></div>';
+	drawNetWorth(d.net_worth_series);
+}
+function drawNetWorth(series){
+	var box = document.getElementById("nwChart");
+	if (!series || series.length < 2) {
+		box.innerHTML = '<p class="sub" style="margin:12px 0 8px">Net-worth history accumulates with each daily sync — the chart appears after a few days.</p>';
+		return;
+	}
+	var W = 1000, H = 150, L = 8, R = 58, T = 10, B = 18;
+	var vals = series.map(function(s){ return s[1]; });
+	var invs = series.map(function(s){ return s[2] || 0; });
+	var min = Math.min.apply(null, vals.concat(invs)) * 0.995;
+	var max = Math.max.apply(null, vals) * 1.005;
+	var span = (max - min) || 1, n = series.length;
+	function X(i){ return L + i * (W - L - R) / (n - 1); }
+	function Y(v){ return T + (H - T - B) * (1 - (v - min) / span); }
+	var svg = svgEl(W, H);
+	var area = "M" + X(0) + "," + (H - B), line = "";
+	for (var i = 0; i < n; i++) {
+		var x = X(i).toFixed(1), y = Y(vals[i]).toFixed(1);
+		line += (i ? "L" : "M") + x + "," + y + " ";
+		area += "L" + x + "," + y + " ";
+	}
+	area += "L" + X(n-1) + "," + (H - B) + "Z";
+	var accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+	var grad = el("linearGradient", {id: "nwg", x1: 0, y1: 0, x2: 0, y2: 1});
+	grad.appendChild(el("stop", {offset: "0%", "stop-color": accent, "stop-opacity": .28}));
+	grad.appendChild(el("stop", {offset: "100%", "stop-color": accent, "stop-opacity": 0}));
+	var defs = el("defs", {}); defs.appendChild(grad); svg.appendChild(defs);
+	svg.appendChild(el("path", {d: area, fill: "url(#nwg)"}));
+	svg.appendChild(el("path", {d: line, fill: "none", stroke: "var(--accent)", "stroke-width": 2.2,
+		"stroke-linejoin": "round", "vector-effect": "non-scaling-stroke"}));
+	var iline = "";
+	for (var j = 0; j < n; j++) iline += (j ? "L" : "M") + X(j).toFixed(1) + "," + Y(invs[j]).toFixed(1) + " ";
+	svg.appendChild(el("path", {d: iline, fill: "none", stroke: "var(--s-blue)", "stroke-width": 1.6,
+		"stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke"}));
+	series.forEach(function(s, i){
+		var hit = el("circle", {cx: X(i), cy: Y(s[1]), r: 10, fill: "transparent"});
+		hover(hit, shortDate(s[0]) + " · net " + usdK(s[1]) + " · invest " + usdK(s[2] || 0));
+		svg.appendChild(hit);
+	});
+	var lab = el("text", {x: W - R + 6, y: Y(vals[n-1]) + 3, class: "dl"});
+	lab.textContent = usdK(vals[n-1]); svg.appendChild(lab);
+	var lab2 = el("text", {x: W - R + 6, y: Y(invs[n-1]) + 3});
+	lab2.textContent = usdK(invs[n-1]); svg.appendChild(lab2);
+	box.innerHTML = ""; box.appendChild(svg);
+	var legend = document.createElement("div");
+	legend.className = "sub"; legend.style.margin = "2px 0 6px";
+	legend.innerHTML = '<span style="color:var(--accent)">━</span> net worth&nbsp;&nbsp;<span style="color:var(--s-blue)">╌</span> investments';
+	box.appendChild(legend);
+}
+
+// --------------------------------------------------------- overview panels ----
+function renderOverviewPanels(d){
+	var v = document.getElementById("view");
+	var html = '<div class="grid2">' +
+		'<div class="panel"><h3>Allocation by institution</h3><div id="instChart"></div></div>' +
+		'<div class="panel"><h3>Top holdings <small>across brokerages</small></h3><div id="holdChart"></div></div>' +
+	'</div>';
+	if (d.sync_status === "error" && d.sync_error)
+		html += '<div class="empty">⚠ Sync issue: '+esc(d.sync_error)+'</div>';
+	html += '<div class="panel"><h3>Accounts</h3><table id="acctTable"></table></div>';
+	v.innerHTML = html;
+	drawInstitutions(d.accounts);
+	drawHoldings(d.holdings || []);
+	drawAccounts(d.accounts);
+}
+function drawInstitutions(accounts){
+	var by = {};
+	accounts.forEach(function(a){
+		if (a.ledger == null) return;
+		by[a.institution] = (by[a.institution] || 0) + a.ledger;
+	});
+	var rows = Object.keys(by).map(function(k){ return [k, by[k]]; })
+		.sort(function(a,b){ return Math.abs(b[1]) - Math.abs(a[1]); });
+	var max = Math.max.apply(null, rows.map(function(r){ return Math.abs(r[1]); }));
+	var W = 470, rowH = 27, L = 118, R = 62;
+	var svg = svgEl(W, rows.length * rowH + 4);
+	rows.forEach(function(r, i){
+		var y = i * rowH + 4, w = Math.max(2, Math.abs(r[1]) / max * (W - L - R));
+		var lab = el("text", {x: L - 8, y: y + 13, "text-anchor": "end"});
+		lab.textContent = r[0]; lab.setAttribute("fill", "var(--ink-2)");
+		svg.appendChild(lab);
+		var bar = el("rect", {x: L, y: y, width: w, height: rowH - 9, rx: 3,
+			fill: r[1] < 0 ? "var(--neg)" : "var(--accent)",
+			"fill-opacity": (0.45 + 0.55 * Math.abs(r[1]) / max).toFixed(2)});
+		hover(bar, r[0] + " · " + usd(r[1]));
+		svg.appendChild(bar);
+		var val = el("text", {x: L + w + 7, y: y + 13, class: "dl"});
+		val.textContent = usdK(r[1]); svg.appendChild(val);
+	});
+	document.getElementById("instChart").appendChild(svg);
+}
+function drawHoldings(holdings){
+	var box = document.getElementById("holdChart");
+	if (!holdings.length) { box.innerHTML = '<p class="sub">No holdings synced yet.</p>'; return; }
+	var top = holdings.slice(0, 10);
+	var max = top[0].value;
+	var W = 470, rowH = 27, L = 76, R = 62;
+	var svg = svgEl(W, top.length * rowH + 4);
+	top.forEach(function(h, i){
+		var y = i * rowH + 4, w = Math.max(2, h.value / max * (W - L - R));
+		var lab = el("text", {x: L - 8, y: y + 13, "text-anchor": "end"});
+		lab.textContent = h.ticker || "?"; lab.setAttribute("fill", "var(--ink-2)");
+		svg.appendChild(lab);
+		var bar = el("rect", {x: L, y: y, width: w, height: rowH - 9, rx: 3,
+			fill: "var(--accent)", "fill-opacity": (0.45 + 0.55 * h.value / max).toFixed(2)});
+		hover(bar, (h.name || h.ticker) + " · " + usd(h.value) + " · " + h.institution);
+		svg.appendChild(bar);
+		var val = el("text", {x: L + w + 7, y: y + 13, class: "dl"});
+		val.textContent = usdK(h.value); svg.appendChild(val);
+	});
+	box.appendChild(svg);
+}
+function drawAccounts(accounts){
+	var tbl = document.getElementById("acctTable");
+	var groups = {};
+	accounts.forEach(function(a){ (groups[a.institution] = groups[a.institution] || []).push(a); });
+	var html = '<tr><th>Account</th><th>Type</th><th class="r">Balance</th><th class="r">Available</th><th>As of</th></tr>';
+	Object.keys(groups).sort().forEach(function(inst){
+		html += '<tr class="inst"><td colspan="5">'+esc(inst)+'</td></tr>';
+		groups[inst].forEach(function(a){
+			html += '<tr><td>'+esc(a.name)+' <span class="badge gray">··'+esc(a.last_four||"")+'</span>' +
+				(a.status === "disconnected" ? ' <span class="badge warn">reconnect</span>' : '') + '</td>' +
+				'<td><span class="badge">'+esc(a.subtype || a.type)+'</span></td>' +
+				'<td class="r'+(a.ledger < 0 ? " neg" : "")+'">'+usd(a.ledger)+'</td>' +
+				'<td class="r">'+(a.available != null ? usd(a.available) : "–")+'</td>' +
+				'<td class="sub">'+shortDate(a.balance_date)+'</td></tr>';
+		});
+	});
+	tbl.innerHTML = html;
+}
+
+// ------------------------------------------------------------- transactions ---
 function loadTransactions(reset){
 	var qs = "?limit=100&offset=" + TXQ.offset;
 	if (TXQ.q) qs += "&q=" + encodeURIComponent(TXQ.q);
 	if (TXQ.category) qs += "&category=" + encodeURIComponent(TXQ.category);
-	if (TXQ.account) qs += "&account=" + encodeURIComponent(TXQ.account);
 	getJSON("/transactions" + qs).then(function(d){
 		txCache = reset ? d.transactions : txCache.concat(d.transactions);
 		var v = document.getElementById("view");
-		var cats = {}, accts = {};
-		txCache.forEach(function(t){ if(t.category) cats[t.category]=1; });
+		var cats = {};
+		txCache.forEach(function(t){ if(t.category) cats[t.category] = 1; });
 		var html = '<div class="filters">' +
 			'<input type="search" id="txq" placeholder="search description / merchant" value="'+esc(TXQ.q)+'">' +
 			'<select id="txcat"><option value="">all categories</option></select>' +
 			'<button class="btn" id="txgo">Search</button>' +
 			'<span class="sub" style="align-self:center">'+d.total.toLocaleString()+' matching</span></div>';
-		html += '<table><tr><th>Date</th><th>Description</th><th>Account</th><th>Category</th><th class="r">Amount</th></tr>';
+		html += '<div class="panel"><table><tr><th>Date</th><th>Description</th><th>Account</th><th>Category</th><th class="r">Amount</th></tr>';
 		txCache.forEach(function(t){
-			html += '<tr><td>'+shortDate(t.date)+'</td>'+
-				'<td>'+esc(t.merchant || t.description)+(t.status==="pending"?' <span class="badge">pending</span>':'')+'</td>'+
-				'<td>'+esc((t.institution ? t.institution + " · " : "") + (t.account_name||""))+'</td>'+
-				'<td>'+esc(t.category||"")+'</td>'+
+			html += '<tr><td class="sub">'+shortDate(t.date)+'</td>' +
+				'<td>'+esc(t.merchant || t.description)+(t.status==="pending"?' <span class="badge gray">pending</span>':'')+'</td>' +
+				'<td class="sub">'+esc((t.institution ? t.institution + " · " : "") + (t.account_name||""))+'</td>' +
+				'<td><span class="badge">'+esc(t.category||"")+'</span></td>' +
 				'<td class="r'+(t.amount<0?" neg":"")+'">'+usd(t.amount)+'</td></tr>';
 		});
 		html += '</table>';
 		if (txCache.length < d.total)
 			html += '<p><button class="btn" id="txmore">Load more ('+txCache.length+' / '+d.total+')</button></p>';
+		html += '</div>';
 		v.innerHTML = html;
 		var sel = document.getElementById("txcat");
 		Object.keys(cats).sort().forEach(function(c){
@@ -346,7 +538,7 @@ function loadTransactions(reset){
 	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
 }
 
-// Spending
+// ----------------------------------------------------------------- spending ---
 var SPEND_BY = "category";
 function loadSpending(){
 	getJSON("/spending?by=" + SPEND_BY + "&months=6").then(function(d){
@@ -356,17 +548,17 @@ function loadSpending(){
 		if (!d.months.length) html += '<div class="empty">No spending data yet.</div>';
 		d.months.slice().reverse().forEach(function(m){
 			var mom = m.mom_pct == null ? "" :
-				' <span class="sub">('+(m.mom_pct>0?"+":"")+m.mom_pct+'% vs prior)</span>';
-			html += '<h2>'+m.month+' — '+usd(m.total)+mom+'</h2><table>';
+				' <small>('+(m.mom_pct>0?"+":"")+m.mom_pct+'% vs prior)</small>';
+			html += '<div class="panel"><h3>'+m.month+' — '+usd(m.total)+mom+'</h3><table>';
 			var maxSpend = m.items.length ? m.items[0].spend : 1;
 			m.items.slice(0,15).forEach(function(it){
 				var w = Math.max(2, Math.round(it.spend / maxSpend * 100));
-				html += '<tr><td style="width:180px">'+esc(it.name)+'</td>'+
-					'<td><div class="bar" style="width:100%"><i style="width:'+w+'%"></i></div></td>'+
-					'<td class="r" style="width:110px">'+usd(it.spend)+'</td>'+
-					'<td class="r sub" style="width:60px">'+it.count+'×</td></tr>';
+				html += '<tr><td style="width:160px">'+esc(it.name)+'</td>' +
+					'<td><div class="bar"><i style="width:'+w+'%"></i></div></td>' +
+					'<td class="r" style="width:100px">'+usd(it.spend)+'</td>' +
+					'<td class="r sub" style="width:50px">'+it.count+'×</td></tr>';
 			});
-			html += '</table>';
+			html += '</table></div>';
 		});
 		document.getElementById("view").innerHTML = html;
 		document.getElementById("byCat").onclick = function(){ SPEND_BY="category"; loadSpending(); };
@@ -374,41 +566,44 @@ function loadSpending(){
 	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
 }
 
-// Recurring
+// ---------------------------------------------------------------- recurring ---
 function loadRecurring(){
 	getJSON("/recurring").then(function(d){
 		var html;
 		if (!d.recurring.length) {
-			html = '<div class="empty">No recurring charges detected yet — needs a few months of history.</div>';
+			html = '<div class="empty">No recurring charges detected yet.</div>';
 		} else {
-			html = '<table><tr><th>Merchant</th><th>Period</th><th class="r">Typical</th><th class="r">Last</th><th>Next expected</th><th>Seen</th><th>Status</th></tr>';
+			html = '<div class="panel"><table><tr><th>Merchant</th><th>Period</th><th class="r">Typical</th><th class="r">Last</th><th>Next expected</th><th>Status</th></tr>';
 			d.recurring.forEach(function(r){
-				html += '<tr><td>'+esc(r.name)+'</td><td>'+esc(r.period)+'</td>'+
-					'<td class="r">'+usd(r.typical_amount)+'</td>'+
-					'<td class="r">'+usd(r.last_amount)+'</td>'+
-					'<td>'+shortDate(r.next_expected)+'</td>'+
-					'<td>'+r.occurrences+'× since '+shortDate(r.first_seen)+'</td>'+
-					'<td><span class="badge '+esc(r.status)+'">'+esc(r.status)+'</span></td></tr>';
+				var cls = r.status === "active" ? "" : (r.status === "ended" ? "gray" : "warn");
+				html += '<tr><td>'+esc(r.name)+'</td><td class="sub">'+esc(r.period)+'</td>' +
+					'<td class="r">'+usd(r.typical_amount)+'</td>' +
+					'<td class="r">'+usd(r.last_amount)+'</td>' +
+					'<td class="sub">'+shortDate(r.next_expected)+'</td>' +
+					'<td><span class="badge '+cls+'">'+esc(r.status)+'</span></td></tr>';
 			});
-			html += '</table>';
+			html += '</table></div>';
 		}
-		html += '<p class="sub">Detected from posted charges with a regular cadence and stable amount. '+
-			'New = first detected recently · Changed = last amount differs from typical · Missed = expected charge did not arrive.</p>';
 		document.getElementById("view").innerHTML = html;
 	}).catch(function(e){ if (e.message !== "unauthenticated") showErr(e); });
 }
-
 function showErr(e){
 	document.getElementById("view").innerHTML =
-		'<div class="empty">Could not load data ('+esc(e.message)+'). Is the finance-api service running?</div>';
+		'<div class="empty">Could not load data ('+esc(e.message)+').</div>';
 }
 
+// -------------------------------------------------------------------- boot ----
 function boot(){
 	if (location.hash === "#setup") { renderLogin(); return; }
-	getJSON("/auth/status").then(function(s){
-		if (!s.authenticated) return renderLogin();
-		shell(); loadView();
-	}).catch(function(){ renderLogin(); });
+	getJSON("/overview").then(function(d){
+		window.__ov = d;
+		document.getElementById("sync").textContent =
+			d.last_sync ? "synced " + new Date(d.last_sync).toLocaleString() : "";
+		shell();
+		renderHero(d);
+		loadView();
+	}).catch(function(e){ if (e.message !== "unauthenticated") {
+		app.innerHTML = '<div class="empty">Could not load ('+esc(e.message)+')</div>'; } });
 }
 boot();
 </script>
