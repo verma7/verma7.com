@@ -178,7 +178,7 @@ SimpleFIN code path remains as fallback):
 | Service | `finance-api.service` (systemd, `Restart=always`, `MemoryMax=200M`, runs as user `finance`, hardened: `ProtectSystem=strict`) |
 | App | `/opt/finance-api/server.py` — Python on `127.0.0.1:8644` under `/opt/finance-api/venv` (single dep: `webauthn==2.7.1`) |
 | Storage | `/opt/finance-api/finance.db` (bank data) + `auth.db` (passkeys/sessions — never served) |
-| Secrets | `/opt/finance-api/secrets/` (700): `plaid.json` (client_id/secret/env/redirect_uri/items), `setup.secret` (gates passkey registration), `mcp.token` (bearer for DB snapshot/refresh) |
+| Secrets | `/opt/finance-api/secrets/` (700): `plaid.json` (8 Items: banks + brokerages), `kraken.json` (query-only crypto key), `smtp.json` (weekly digest), `setup.secret` (gates passkey registration), `mcp.token` (bearer for DB snapshot/refresh) |
 | Caddy | `reverse_proxy /finance/api* → :8644` in the **https block only** (WebAuthn needs the real origin; no plain-HTTP exposure) |
 | Sync | in-process thread: on start + every 6h + on `POST /finance/api/refresh` |
 | Weekly email | `finance-weekly.timer` Fri 18:00 PT → `server.py --weekly-email`; SMTP creds in `secrets/smtp.json` |
