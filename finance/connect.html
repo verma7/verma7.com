@@ -4,122 +4,149 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<meta name="robots" content="noindex, nofollow" />
-	<meta name="description" content="Connect a bank account" />
+	<meta name="description" content="Connect an account" />
 	<link rel="icon" href="/images/A.png" />
-	<link rel="stylesheet" href="/style.css" type="text/css" />
-	<title>Connect a bank - verma7.com</title>
+	<title>Connect - verma7.finance</title>
 	<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 	<style>
-		.textContainer { font-size: 0.62em; }
-		.box { border:2px dashed #00009C; padding:18px; margin:12px 0; }
-		.btn { font-family:inherit; font-size:0.95em; cursor:pointer; border:1px solid #0A6B3D;
-			background:#0A6B3D; color:#fff; padding:6px 16px; border-radius:3px; }
-		textarea { font-family:monospace; font-size:0.9em; width:100%; max-width:640px;
-			height:90px; padding:6px; border:1px solid #bbb; border-radius:3px; box-sizing:border-box; }
-		ol li { margin-bottom:6px; }
-		.err { color:#B00; margin-top:8px; }
-		.ok { color:#0A6B3D; margin-top:8px; }
+	:root {
+		--ground: #FAFAF8; --surface: #ffffff; --raised: #f4f6f4;
+		--ink: #131714; --ink-2: #4d564f; --ink-3: #838b85;
+		--accent: #0A6B3D; --accent-hi: #0d8a4f; --accent-soft: #0A6B3D14;
+		--rule: #e3e6e2; --neg: #B00020; --glow: none;
+		color-scheme: light;
+	}
+	[data-theme="dark"] {
+		--ground: #0E1210; --surface: #151A17; --raised: #1B211D;
+		--ink: #ECF1ED; --ink-2: #A8B3AB; --ink-3: #6E7A72;
+		--accent: #3DD68C; --accent-hi: #5FE6A4; --accent-soft: #3DD68C1A;
+		--rule: #242B26; --neg: #E06C5A; --glow: 0 0 24px #3DD68C22;
+		color-scheme: dark;
+	}
+	* { box-sizing: border-box; }
+	html { background: var(--ground); }
+	body {
+		margin: 0; background: var(--ground); color: var(--ink);
+		font: 15px/1.5 -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+		transition: background .25s, color .25s;
+	}
+	.wrap { max-width: 640px; margin: 0 auto; padding: 22px 20px 64px; }
+	.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+	.brand { font-family: Charter, Georgia, serif; font-size: 1.25rem; font-weight: 700; }
+	.brand a { color: var(--ink); text-decoration: none; }
+	.brand span { color: var(--accent); }
+	.topright { display: flex; align-items: center; gap: 14px; font-size: .8rem; }
+	.toggle { cursor: pointer; border: 1px solid var(--rule); background: var(--surface);
+		color: var(--ink-2); border-radius: 20px; padding: 3px 12px; font: inherit; }
+	.toggle:hover { border-color: var(--accent); color: var(--accent); }
+	a { color: var(--accent); }
+	h2 { font-family: Charter, Georgia, serif; margin: 30px 0 6px; }
+	.sub { color: var(--ink-2); font-size: .92rem; max-width: 54ch; }
+	.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px;
+		padding: 22px 24px; margin-top: 18px; box-shadow: var(--glow); }
+	.panel h3 { margin: 0 0 4px; font-family: Charter, Georgia, serif; font-size: 1.05rem; }
+	.panel p { color: var(--ink-2); font-size: .9rem; margin: 4px 0 14px; }
+	.btn {
+		font: inherit; font-size: .9rem; cursor: pointer; font-weight: 600;
+		border: 1px solid var(--accent); background: var(--accent); color: var(--ground);
+		padding: 8px 18px; border-radius: 20px;
+	}
+	.btn:hover { background: var(--accent-hi); border-color: var(--accent-hi); }
+	.btn.quiet { background: var(--surface); color: var(--accent); }
+	.err { color: var(--neg); margin-top: 12px; font-size: .88rem; }
+	.ok { color: var(--accent); margin-top: 12px; font-size: .88rem; }
+	.note { margin-top: 22px; color: var(--ink-3); font-size: .8rem; }
+	@media (prefers-reduced-motion: reduce) { body { transition: none; } }
 	</style>
 </head>
 <body>
-	<div class="container">
-		<div class="textContainer">
-			<h1><a class="header" href="/">verma7.com</a></h1>
-			<h2>Connect a bank</h2>
-			<div class="box" id="plaidbox" style="display:none"></div>
-			<div class="box" id="box"><p>Checking session…</p></div>
-			<div class="footer"><a href="/finance/">Back to dashboard</a></div>
+	<div class="wrap">
+		<div class="top">
+			<div class="brand"><a href="/finance/">verma7<span>.finance</span></a></div>
+			<div class="topright">
+				<button class="toggle" id="themeToggle">◐ theme</button>
+				<a href="/finance/">← dashboard</a>
+			</div>
 		</div>
+		<h2>Connect an account</h2>
+		<p class="sub">Accounts link through Plaid with read-only scope — you authenticate
+		directly with your institution, and credentials never touch verma7.com.</p>
+		<div id="content"><div class="panel"><p style="margin:0">Checking session…</p></div></div>
+		<p class="note">Connected accounts sync every 6 hours. Crypto (Kraken) syncs via
+		its own read-only API key — managed on the server, nothing to do here.</p>
 	</div>
 
 <script>
 "use strict";
-var box = document.getElementById("box");
+(function(){
+	var saved = localStorage.getItem("fin_theme");
+	var mode = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+	document.documentElement.setAttribute("data-theme", mode);
+	document.getElementById("themeToggle").onclick = function(){
+		mode = mode === "dark" ? "light" : "dark";
+		document.documentElement.setAttribute("data-theme", mode);
+		localStorage.setItem("fin_theme", mode);
+	};
+})();
+
+var content = document.getElementById("content");
 
 fetch("/finance/api/auth/status", {credentials:"same-origin"})
 	.then(function(r){ return r.json(); })
 	.then(function(s){
 		if (!s.authenticated) {
-			box.innerHTML = '<b>Sign in first.</b><p>Bank enrollment requires an authenticated session.</p>' +
-				'<p><a href="/finance/">Go to the dashboard to sign in</a>, then come back.</p>';
+			content.innerHTML = '<div class="panel"><h3>Sign in first</h3>' +
+				'<p>Linking accounts requires an authenticated session.</p>' +
+				'<a class="btn" href="/finance/" style="text-decoration:none">Go to sign in</a></div>';
 			return;
 		}
-		renderPlaid();
-		box.innerHTML =
-			'<b>Connect via SimpleFIN Bridge</b>' +
-			'<ol>' +
-			'<li>Create an account at <a href="https://bridge.simplefin.org" target="_blank" rel="noopener">bridge.simplefin.org</a> ($1.50/mo) and link your banks there (Wells Fargo, Chase, …). Your bank credentials go only to SimpleFIN — never to verma7.com.</li>' +
-			'<li>On the Bridge site choose <i>New app connection</i> to get a <b>setup token</b> (a long base64 string).</li>' +
-			'<li>Paste the token below. It is single-use: this server exchanges it once for a permanent read-only access URL, which is stored on the VM.</li>' +
-			'</ol>' +
-			'<p><textarea id="tok" placeholder="paste setup token" autocomplete="off"></textarea></p>' +
-			'<button class="btn" id="go">Connect</button><div id="msg"></div>';
-		document.getElementById("go").onclick = function(){
-			var msg = document.getElementById("msg");
-			var token = document.getElementById("tok").value.trim();
-			if (!token) { msg.className = "err"; msg.textContent = "Paste a setup token first."; return; }
-			msg.className = ""; msg.textContent = "Claiming token…";
-			fetch("/finance/api/enroll", {
-				method: "POST", credentials: "same-origin",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify({setup_token: token})
-			}).then(function(r){ return r.json(); }).then(function(j){
-				if (j.ok) {
-					msg.className = "ok";
-					msg.textContent = "Connected! Initial sync started — data appears on the dashboard within a minute or two.";
-					document.getElementById("tok").value = "";
-				} else {
-					msg.className = "err"; msg.textContent = j.error || "enroll failed";
-				}
-			}).catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
-		};
+		content.innerHTML =
+			'<div class="panel"><h3>Bank or credit card</h3>' +
+			'<p>Checking, savings, and cards — transactions and balances, 24 months of history.</p>' +
+			'<button class="btn" id="bankBtn">Connect a bank</button></div>' +
+			'<div class="panel"><h3>Brokerage or retirement</h3>' +
+			'<p>Holdings, balances, and investment activity — Schwab, Vanguard, Wealthfront, Robinhood, 401(k)s.</p>' +
+			'<button class="btn" id="invBtn">Connect a brokerage</button></div>' +
+			'<div id="msg"></div>';
+		document.getElementById("bankBtn").onclick = function(){ plaidLink("transactions"); };
+		document.getElementById("invBtn").onclick = function(){ plaidLink("investments"); };
 	})
-	.catch(function(e){ box.innerHTML = '<b>Error:</b> ' + e.message; });
+	.catch(function(e){
+		content.innerHTML = '<div class="panel"><p class="err" style="margin:0">Error: '+e.message+'</p></div>';
+	});
 
-function renderPlaid(){
-	var pb = document.getElementById("plaidbox");
-	pb.style.display = "";
-	pb.innerHTML = '<b>Connect via Plaid</b>' +
-		'<p>Best data quality and automatic categories. You will authenticate with ' +
-		'your bank inside Plaid Link — credentials never touch verma7.com.</p>' +
-		'<button class="btn" id="plaidgo">Connect a bank</button> ' +
-		'<button class="btn" id="plaidinv">Connect a brokerage</button>' +
-		'<div id="plaidmsg"></div>';
-	document.getElementById("plaidgo").onclick = function(){ plaidLink("transactions"); };
-	document.getElementById("plaidinv").onclick = function(){ plaidLink("investments"); };
-	function plaidLink(mode){
-		var msg = document.getElementById("plaidmsg");
-		msg.className = ""; msg.textContent = "Requesting link token…";
-		fetch("/finance/api/plaid/link-token", {method:"POST", credentials:"same-origin",
-			headers:{"Content-Type":"application/json"}, body: JSON.stringify({mode: mode})})
-		.then(function(r){ return r.json(); })
-		.then(function(j){
-			if (!j.link_token) { msg.className = "err"; msg.textContent = j.error || "no link token"; return; }
-			msg.textContent = "";
-			var handler = Plaid.create({
-				token: j.link_token,
-				onSuccess: function(public_token, metadata){
-					msg.className = "ok"; msg.textContent = "Linked — saving…";
-					fetch("/finance/api/plaid/exchange", {
-						method:"POST", credentials:"same-origin",
-						headers:{"Content-Type":"application/json"},
-						body: JSON.stringify({
-							public_token: public_token,
-							institution: (metadata.institution && metadata.institution.name) || ""
-						})
-					}).then(function(r){ return r.json(); }).then(function(j2){
-						if (j2.ok) { msg.textContent = "Connected! Initial sync started — data appears on the dashboard shortly."; }
-						else { msg.className = "err"; msg.textContent = j2.error || "exchange failed"; }
-					}).catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
-				},
-				onExit: function(err){
-					if (err) { msg.className = "err"; msg.textContent = "Plaid Link exited: " + (err.display_message || err.error_code || "cancelled"); }
-				}
-			});
-			handler.open();
-		})
-		.catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
-	}
+function plaidLink(mode){
+	var msg = document.getElementById("msg");
+	msg.className = ""; msg.textContent = "Requesting link token…";
+	fetch("/finance/api/plaid/link-token", {method:"POST", credentials:"same-origin",
+		headers:{"Content-Type":"application/json"}, body: JSON.stringify({mode: mode})})
+	.then(function(r){ return r.json(); })
+	.then(function(j){
+		if (!j.link_token) { msg.className = "err"; msg.textContent = j.error || "no link token"; return; }
+		msg.textContent = "";
+		var handler = Plaid.create({
+			token: j.link_token,
+			onSuccess: function(public_token, metadata){
+				msg.className = "ok"; msg.textContent = "Linked — saving…";
+				fetch("/finance/api/plaid/exchange", {
+					method:"POST", credentials:"same-origin",
+					headers:{"Content-Type":"application/json"},
+					body: JSON.stringify({
+						public_token: public_token,
+						institution: (metadata.institution && metadata.institution.name) || ""
+					})
+				}).then(function(r){ return r.json(); }).then(function(j2){
+					if (j2.ok) { msg.className = "ok"; msg.textContent = "✓ Connected — initial sync started. Data appears on the dashboard shortly."; }
+					else { msg.className = "err"; msg.textContent = j2.error || "exchange failed"; }
+				}).catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
+			},
+			onExit: function(err){
+				if (err) { msg.className = "err"; msg.textContent = "Plaid Link exited: " + (err.display_message || err.error_code || "cancelled"); }
+			}
+		});
+		handler.open();
+	})
+	.catch(function(e){ msg.className = "err"; msg.textContent = e.message; });
 }
 </script>
 </body>

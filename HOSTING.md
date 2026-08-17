@@ -170,8 +170,8 @@ caddy hash-password --plaintext 'NEWPASS'   # paste hash into /etc/caddy/Caddyfi
 
 `/finance/` is a **private** dashboard (WebAuthn passkey login, no Basic Auth)
 showing bank balances/transactions synced read-only from Plaid (production,
-Transactions product; added 2026-08-11, Plaid since 2026-08-12 — a retired
-SimpleFIN code path remains as fallback):
+Transactions + Investments) and Kraken (direct API; added 2026-08-11,
+SimpleFIN support removed 2026-08-17):
 
 | Component | Value |
 |---|---|
@@ -186,10 +186,10 @@ SimpleFIN code path remains as fallback):
 Endpoints (all under `verma7.com/finance/api/`): `ping` (public);
 `auth/register/*` (gated by `X-Setup-Secret` header, rate-limited);
 `auth/login/*` (rate-limited, mints 30-day session cookie); `overview`,
-`transactions`, `spending`, `recurring`, `enroll` (SimpleFIN),
-`plaid/link-token`, `plaid/exchange` (session); `overrides`, `account-type`
-(session or MCP bearer); `refresh` (session or MCP bearer); `db` (MCP
-bearer — streams a snapshot of finance.db only, never auth.db).
+`transactions`, `spending`, `recurring`, `plaid/link-token`,
+`plaid/exchange` (session); `overrides`, `account-type` (session or MCP
+bearer); `refresh` (session or MCP bearer); `db` (MCP bearer — streams a
+snapshot of finance.db only, never auth.db).
 
 Source lives in `Fable/finance/` on the MacBook (`server.py` + `mcp/` MCP
 server + `DEPLOY.md` runbook). Service update: `gcloud compute scp server.py
