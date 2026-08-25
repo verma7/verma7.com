@@ -131,32 +131,80 @@ sudo journalctl -u query-router --since "1 hour ago"
 
 ## Health dashboard service
 
-`/health/` is a **private** dashboard (Caddy Basic Auth) showing Apple Health
-data synced from an iPhone Shortcut (added 2026-07-24):
+`/health/` is a **private** training + sleep dashboard (Caddy Basic Auth) built
+around triathlon load and sleep quality. Rebuilt 2026-08-24 (v2); the original
+2026-07-24 version is kept as `/opt/health-api/server.py.v1.bak`.
 
 | Component | Value |
 |---|---|
-| Service | `health-api.service` (systemd, `Restart=always`, `MemoryMax=150M`, runs as user `health`) |
-| App | `/opt/health-api/server.py` — Python stdlib HTTP on `127.0.0.1:8643` |
-| Storage | SQLite at `/opt/health-api/health.db` (dedup on `(metric, start, source)`) |
-| Ingest secret | `/opt/health-api/ingest.secret` (bearer token the Shortcut sends) |
+| Service | `health-api.service` (systemd, `Restart=always`, `MemoryMax=280M`, runs as user `health`) |
+| App | `/opt/health-api/server.py` + `metrics.py` — Python stdlib HTTP on `127.0.0.1:8643` |
+| Storage | SQLite at `/opt/health-api/health.db`, tables `daily(date,key,value)` and `sessions(id,…)`, plus `appmeta` |
+| Ingest secret | `/opt/health-api/ingest.secret` (bearer token the iPhone automation sends) |
 | Caddy | `reverse_proxy /health/ingest` + `/health/api*` → `:8643`; `basicauth` on `/health*` **except** `/health/ingest` |
 
-Endpoints (all under `verma7.com`):
+The v1 tables (`samples`, `workouts`, `meta`) are left in place untouched — v2
+deliberately uses different table names rather than migrating over them.
+
+### Endpoints
 
 - `POST /health/ingest` — bearer-auth (`Authorization: Bearer <ingest.secret>`).
-  Accepts either a flat daily snapshot `{"date":"…","values":{"steps":…}}` or a
-  nested `{"metrics":[{"name","unit","samples":[…]}],"workouts":[…]}` payload.
-- `GET /health/api/data?days=N` — Basic-Auth-gated JSON for the dashboard.
-- `GET /health/api/ping` — health check.
+  Accepts `{"days":[{"date":…, "steps":…}], "workouts":[{"start":…,"type":…}]}`,
+  a single-day `{"date":…, "values":{…}}`, or flat top-level keys. Unknown keys
+  are ignored, and values may be strings with units (`"7.5 hr"`).
+- `GET /health/api/summary?days=N` — Basic-Auth-gated computed payload
+  (`days=all` for full history). ~0.4s cold, ~0.1s cached, 3.1 MB at `all`.
+- `GET /health/api/ping` — row counts and last ingest time.
 
-Source lives in the local `Fable/health-sync` repo on the MacBook. To update the
-service: `gcloud compute scp server.py verma7-web:~/ …`, `sudo mv` into
-`/opt/health-api/`, `sudo systemctl restart health-api`. The dashboard page
-(`health/index.html`) deploys via the normal git push flow.
+### What it computes
+
+All derived metrics live in `metrics.py` so the backfill and the daily phone
+sync go through identical logic:
+
+- **Training load** — Banister TRIMP per session from heart rate (no power
+  meter), then CTL (42-day) / ATL (7-day) exponential averages and form
+  (CTL − ATL), plus Foster monotony and strain.
+- **Readiness** — 0–100 from HRV (30%), sleep (30%), resting HR (20%) and form
+  (20%), each scored against a rolling 60-day personal baseline.
+- **Sleep** — stages per night, rolling 14-night debt, bed/wake regularity.
+  Sleep samples are unioned and split into sessions on a 1-hour gap so naps and
+  overlapping HealthKit records do not inflate a night.
+- **Correlations** — sleep vs next-session efficiency, and load vs that night's
+  recovery, with Pearson r, n and a real t-test p-value. Session efficiency is
+  detrended against the athlete's last 20 sessions in that discipline and
+  winsorised at ±4σ, so multi-year fitness drift cannot manufacture a result.
+
+### Data pipeline
+
+Two sources feed the same ingest endpoint:
+
+1. **Backfill** (one-off / occasional) — `Fable/health-sync/etl_duckdb.py` reads
+   the DuckDB built by `Fable/apple-health-mcp-server` from an Apple Health
+   `export.zip`, then `push_backfill.py` POSTs it. 3,581 days and 1,346 sessions
+   back to Oct 2016.
+2. **Daily** — the iPhone app *Health Exporter & Shortcuts* ($0.99, one-time)
+   provides `Export Health Data` and `Export Workouts` Shortcuts actions; a
+   time-of-day Automation posts their JSON to `/health/ingest`. See
+   `Fable/health-sync/SHORTCUT.md`.
+
+The dashboard shows a staleness banner when the newest day on record is more
+than two days old, so a silently dead automation is visible.
 
 ```bash
-# health check + service logs
+# refresh the backfill from a new export.zip
+cd ~/Fable/apple-health-mcp-server && uv run scripts/duckdb_importer.py
+uv run --frozen python ~/Fable/health-sync/etl_duckdb.py --out ~/Fable/health-sync/backfill.json
+cd ~/Fable/health-sync && python3 push_backfill.py --secret "$(gcloud compute ssh verma7-web \
+  --zone=us-central1-c --command='sudo cat /opt/health-api/ingest.secret')"
+
+# update the service
+gcloud compute scp server.py metrics.py verma7-web:/tmp/ --zone=us-central1-c
+gcloud compute ssh verma7-web --zone=us-central1-c --command="\
+  sudo install -o health -g health -m 644 /tmp/server.py /opt/health-api/server.py && \
+  sudo install -o health -g health -m 644 /tmp/metrics.py /opt/health-api/metrics.py && \
+  sudo systemctl restart health-api"
+
+# health check + logs
 curl -s localhost:8643/health/api/ping   # (on the VM)
 sudo journalctl -u health-api --since "1 hour ago"
 # rotate the ingest secret
