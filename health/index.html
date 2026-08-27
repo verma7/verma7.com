@@ -108,6 +108,15 @@
 	.rbar i { position: absolute; top: 0; height: 100%; border-radius: 4px; background: var(--accent); }
 	.rbar u { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); left: 50%; }
 
+	tr.haslaps { cursor: pointer; }
+	tr.haslaps:hover td { background: var(--raised); }
+	.caret { color: var(--ink-3); font-size: .7rem; }
+	.laps { display: flex; align-items: flex-end; gap: 3px; height: 68px; }
+	.lapbar { flex: 1 1 0; min-width: 10px; height: 100%; display: flex; flex-direction: column;
+		justify-content: flex-end; align-items: stretch; }
+	.lapbar i { display: block; border-radius: 2px 2px 0 0; min-height: 2px; }
+	.lapbar u { text-decoration: none; font-size: .62rem; color: var(--ink-3); text-align: center;
+		font-variant-numeric: tabular-nums; padding-top: 2px; }
 	.empty { border: 1px dashed var(--rule); border-radius: 10px; padding: 18px; margin: 12px 0; color: var(--ink-2); font-size: .9rem; }
 	.sub { color: var(--ink-3); font-size: .8rem; }
 	#tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--ground);
@@ -340,6 +349,16 @@ function render(d) {
 	g2.appendChild(panel("Recovery markers", "HRV and resting heart rate against their own baselines.", "recChart"));
 	app.appendChild(g2);
 
+	if (d.swim_technique && d.swim_technique.length) {
+		app.appendChild(panel("Swim technique",
+			"SWOLF is one length's time plus the strokes it took. Unlike pace it ignores " +
+			"how long you rest at the wall, so it tracks technique rather than fitness — " +
+			"lower is better.", "swimChart"));
+	}
+	if (d.run_form && d.run_form.length) {
+		app.appendChild(panel("Running form", "The mechanics behind a pace. Measured by the " +
+			"watch during outdoor runs.", "runFormChart"));
+	}
 	app.appendChild(panel("Does sleep predict performance?",
 		"Session quality is efficiency factor — speed per unit of heart rate — measured against " +
 		"your recent form in that discipline, so long-term fitness drift cannot fake a result.",
@@ -353,6 +372,8 @@ function render(d) {
 	drawSleep(d);
 	drawRaster(d);
 	drawRecovery(d);
+	if (d.swim_technique && d.swim_technique.length) drawSwim(d);
+	if (d.run_form && d.run_form.length) drawRunForm(d);
 	drawCorr(d);
 	drawSessions(d);
 }
@@ -725,6 +746,109 @@ function drawRecovery(d) {
 		'<span><i style="background:var(--run)"></i>resting HR, bpm (right)</span></div>');
 }
 
+// ------------------------------------------------------------ swim technique
+function drawSwim(d) {
+	var host = $("#swimChart");
+	var rows = d.swim_technique.slice();
+	if (rows.length < 2) { host.innerHTML = '<div class="empty">Only one swim on record.</div>'; return; }
+	var best = rows.reduce(function (a, b) { return b.swolf < a.swolf ? b : a; });
+	var latest = rows[rows.length - 1];
+
+	var f = frame(1000, 210, { l: 36, r: 10, t: 12, b: 30 });
+	var vals = rows.map(function (r) { return r.swolf; });
+	var lo = Math.min.apply(null, vals) - 4, hi = Math.max.apply(null, vals) + 4;
+	var y = yScale(f, lo, hi);
+	gridY(f, y, lo, hi, 4);
+	// swims are irregularly spaced; index-based x keeps every session visible
+	f.svg.appendChild(el("path", { d: linePath(f, vals, y), fill: "none",
+		stroke: cssVar("--swim"), "stroke-width": 1.6 }));
+	rows.forEach(function (r, i) {
+		var x = f.p.l + (rows.length === 1 ? f.iw / 2 : i / (rows.length - 1) * f.iw);
+		f.svg.appendChild(el("circle", { cx: x, cy: y(r.swolf), r: 2.6,
+			fill: r === best ? cssVar("--good") : cssVar("--swim"),
+			opacity: r === best ? 1 : .65 }));
+	});
+	// personal best reference
+	f.svg.appendChild(el("line", { x1: f.p.l, x2: f.W - f.p.r, y1: y(best.swolf), y2: y(best.swolf),
+		stroke: cssVar("--good"), "stroke-width": 1, "stroke-dasharray": "5 4", opacity: .9 }));
+	f.svg.appendChild(el("text", { x: f.W - f.p.r, y: y(best.swolf) - 5, "text-anchor": "end",
+		fill: cssVar("--good") }, [document.createTextNode("best " + best.swolf + " · " + shortDate(best.date))]));
+	hoverBands(f, rows.length, function (i) {
+		var r = rows[i];
+		return shortDate(r.date) + "\nSWOLF " + fmt(r.swolf, 1) +
+			"\n" + r.lengths + " x " + fmt(r.lap_length_m, 0) + "m   avg " + fmt(r.lap_avg_sec, 1) + "s" +
+			"\n" + fmt(r.strokes_per_length, 1) + " strokes/length";
+	});
+	var step = Math.max(1, Math.floor(rows.length / 6));
+	for (var i = 0; i < rows.length; i += step) {
+		var x = f.p.l + i / (rows.length - 1) * f.iw;
+		f.svg.appendChild(el("text", { x: x, y: f.H - 14, "text-anchor": "middle" },
+			[document.createTextNode(shortDate(rows[i].date))]));
+	}
+	f.svg.appendChild(el("text", { x: f.p.l + f.iw / 2, y: f.H - 2, "text-anchor": "middle" },
+		[document.createTextNode(rows.length + " swims, oldest first \u2192")]));
+	host.appendChild(f.svg);
+
+	var sorted = vals.slice().sort(function (a, b) { return a - b; });
+	var median = sorted[Math.floor(sorted.length / 2)];
+	var betterThan = vals.filter(function (v) { return v > latest.swolf; }).length;
+	host.insertAdjacentHTML("beforeend", '<div class="stats">' +
+		stat(fmt(latest.swolf, 1), "Latest SWOLF", shortDate(latest.date),
+			latest.swolf <= median ? "good" : "warn") +
+		stat(fmt(best.swolf, 1), "Personal best", shortDate(best.date), "good") +
+		stat(fmt(median, 1), "Median", rows.length + " swims") +
+		stat(fmt(latest.strokes_per_length, 1), "Strokes / length",
+			"best " + fmt(best.strokes_per_length, 1)) +
+		'</div>' +
+		'<p class="sub" style="margin-top:8px">The latest swim beats ' + betterThan + ' of ' +
+		(rows.length - 1) + ' previous sessions. Pace and efficiency factor are deliberately ' +
+		'not shown for swims — a rest-heavy pool set makes elapsed-time pace meaningless.</p>');
+}
+
+// -------------------------------------------------------------- running form
+function drawRunForm(d) {
+	var host = $("#runFormChart");
+	var rows = d.run_form.slice();
+	var fields = d.run_form_fields || [];
+	var html = '<div class="grid2">';
+	host.innerHTML = "";
+	var wrap = document.createElement("div");
+	wrap.className = "grid2";
+	host.appendChild(wrap);
+
+	fields.forEach(function (spec) {
+		var key = spec[0], label = spec[1], unit = spec[2];
+		var pts = rows.filter(function (r) { return r[key]; });
+		if (pts.length < 3) return;
+		var box = document.createElement("div");
+		box.innerHTML = '<div class="sub" style="margin-bottom:2px"><b style="color:var(--ink-2)">' +
+			label + '</b> <span style="color:var(--ink-3)">' + unit + '</span></div>';
+		var f = frame(480, 110, { l: 34, r: 8, t: 8, b: 16 });
+		var vals = pts.map(function (r) { return r[key]; });
+		var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+		var pad = (hi - lo) * 0.12 || 1;
+		var y = yScale(f, lo - pad, hi + pad);
+		gridY(f, y, lo - pad, hi + pad, 2, function (v) { return fmt(v, hi < 10 ? 2 : 0); });
+		f.svg.appendChild(el("path", { d: linePath(f, vals, y), fill: "none",
+			stroke: cssVar("--accent"), "stroke-width": 1.4 }));
+		var lastV = vals[vals.length - 1];
+		f.svg.appendChild(el("circle", {
+			cx: f.p.l + f.iw, cy: y(lastV), r: 3, fill: cssVar("--accent") }));
+		hoverBands(f, pts.length, function (i) {
+			return shortDate(pts[i].date) + "\n" + label + " " + fmt(pts[i][key], 2) + " " + unit +
+				(pts[i].speed_kmh ? "\n" + fmt(pts[i].speed_kmh, 1) + " km/h" : "") +
+				(pts[i].avg_hr ? " @ " + fmt(pts[i].avg_hr, 0) + " bpm" : "");
+		});
+		xLabels(f, pts.map(function (r) { return r.date; }), Math.max(1, Math.floor(pts.length / 4)));
+		box.appendChild(f.svg);
+		wrap.appendChild(box);
+	});
+	host.insertAdjacentHTML("beforeend",
+		'<p class="sub" style="margin-top:10px">' + rows.length + ' runs with form data. ' +
+		'Shorter ground contact and lower vertical oscillation generally mean a more ' +
+		'economical stride at the same effort.</p>');
+}
+
 // ------------------------------------------------------------ correlations
 var CORR_LABELS = {
 	sleep_h_vs_ef: ["Hours slept", "session quality"],
@@ -852,22 +976,57 @@ function drawScatter(d) {
 		'did not move session quality.</p>');
 }
 
+// Per-lap splits, rendered as a small bar chart under the session row. For a
+// pool swim these are the individual lengths; a rising trend across a set is
+// fatigue, and the spread shows how consistent the technique held.
+function lapRow(x, laps, idx) {
+	var secs = laps.map(function (l) { return l.sec; });
+	var max = Math.max.apply(null, secs), min = Math.min.apply(null, secs);
+	var unit = (x.detail || {}).lap_length_m;
+	var bars = laps.map(function (l, i) {
+		var pct = max ? (l.sec / max * 100) : 0;
+		var isBest = l.sec === min;
+		return '<div class="lapbar" title="lap ' + (i + 1) + ': ' + fmt(l.sec, 1) + 's">' +
+			'<i style="height:' + pct.toFixed(1) + '%;background:' +
+			(isBest ? "var(--good)" : "var(--swim)") + '"></i>' +
+			'<u>' + Math.round(l.sec) + '</u></div>';
+	}).join("");
+	var d = x.detail || {};
+	var meta = [laps.length + (unit ? " \u00d7 " + fmt(unit, 0) + "m" : " laps"),
+		"avg " + fmt(d.lap_avg_sec, 1) + "s", "best " + fmt(min, 1) + "s"];
+	if (d.strokes_per_length) meta.push(fmt(d.strokes_per_length, 1) + " strokes/length");
+	if (d.swolf_avg) meta.push("SWOLF " + fmt(d.swolf_avg, 1));
+	if (d.moving_sec) meta.push("moving " + Math.round(d.moving_sec / 60) + "m of " +
+		Math.round(x.duration_min) + "m");
+	return '<tr class="lapdetail" data-i="' + idx + '" style="display:none"><td colspan="8">' +
+		'<div class="sub" style="margin-bottom:6px">' + meta.join(" &middot; ") + '</div>' +
+		'<div class="laps">' + bars + '</div></td></tr>';
+}
+
 // ---------------------------------------------------------------- sessions
 function drawSessions(d) {
 	var host = $("#sessions");
 	var w = d.workouts.slice().reverse().slice(0, 25);
 	if (!w.length) { host.innerHTML = '<div class="empty">No sessions in this window.</div>'; return; }
-	var rows = w.map(function (x) {
+	var rows = w.map(function (x, idx) {
+		var det = x.detail || {};
 		var pace = "";
-		if (x.distance_km && x.duration_min) {
+		// A pool swim's elapsed-time pace is mostly rest, so it is shown as
+		// SWOLF instead of a speed that would badly misrepresent the session.
+		if (x.type === "swim") {
+			pace = det.swolf_avg ? '<span title="SWOLF">SWOLF ' + fmt(det.swolf_avg, 1) + '</span>' : "—";
+		} else if (x.distance_km && x.duration_min) {
 			if (x.type === "run" || x.type === "walk" || x.type === "hike") {
 				var sp = x.duration_min / x.distance_km;
 				pace = Math.floor(sp) + ":" + String(Math.round((sp % 1) * 60)).padStart(2, "0") + " /km";
-			} else {
+			} else if (x.speed_kmh) {
 				pace = fmt(x.speed_kmh, 1) + " km/h";
 			}
 		}
-		return '<tr><td>' + shortDate(x.start.slice(0, 10)) + '</td>' +
+		var laps = (det.laps || []).filter(function (l) { return l.sec; });
+		return '<tr' + (laps.length ? ' class="haslaps" data-i="' + idx + '"' : '') + '><td>' +
+			(laps.length ? '<span class="caret">\u25b8</span> ' : '') +
+			shortDate(x.start.slice(0, 10)) + '</td>' +
 			'<td><span class="pill ' + (DISC[x.type] ? x.type : "") + '">' + (DISC[x.type] || x.type) + '</span></td>' +
 			'<td class="r">' + fmt(x.duration_min, 0) + 'm</td>' +
 			'<td class="r">' + (x.distance_km ? fmt(x.distance_km, 2) + ' km' : "—") + '</td>' +
@@ -876,13 +1035,24 @@ function drawSessions(d) {
 			'<td class="r">' + fmt(x.trimp, 0) + '</td>' +
 			'<td class="r">' + (x.ef_resid === undefined ? "—" :
 				'<span style="color:' + (x.ef_resid >= 0 ? "var(--good)" : "var(--neg)") + '">' +
-				(x.ef_resid >= 0 ? "+" : "") + fmt(x.ef_resid, 2) + 'σ</span>') + '</td></tr>';
+				(x.ef_resid >= 0 ? "+" : "") + fmt(x.ef_resid, 2) + 'σ</span>') + '</td></tr>' +
+			(laps.length ? lapRow(x, laps, idx) : "");
 	}).join("");
 	host.innerHTML = '<table><thead><tr><th>Date</th><th>Type</th><th class="r">Time</th>' +
 		'<th class="r">Distance</th><th class="r">Pace</th><th class="r">Avg HR</th>' +
 		'<th class="r">Load</th><th class="r">vs form</th></tr></thead><tbody>' + rows + '</tbody></table>' +
 		'<p class="sub" style="margin-top:8px">Load is Banister TRIMP. “vs form” compares the session\'s ' +
-		'efficiency with your previous 20 in that discipline. * = heart rate estimated.</p>';
+		'efficiency with your previous 20 in that discipline, and is not computed for swims. ' +
+		'* = heart rate estimated. Rows with a \u25b8 expand to per-lap splits.</p>';
+	Array.prototype.forEach.call(host.querySelectorAll("tr.haslaps"), function (tr) {
+		tr.onclick = function () {
+			var det = host.querySelector('tr.lapdetail[data-i="' + tr.getAttribute("data-i") + '"]');
+			if (!det) return;
+			var open = det.style.display === "table-row";
+			det.style.display = open ? "none" : "table-row";
+			tr.querySelector(".caret").textContent = open ? "\u25b8" : "\u25be";
+		};
+	});
 }
 
 // -------------------------------------------------------------------- boot
