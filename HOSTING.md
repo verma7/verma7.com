@@ -194,9 +194,11 @@ Two guards exist because the raw data lies in specific ways:
 - **Pool length is only applied to swims.** It was previously stamped on every
   workout, so bike rides carried `pool: 25 yd`.
 
-Source for the whole pipeline is a git repo at `Fable/health-sync` on the
-MacBook (local only, no remote). Its README carries the data-quality rules
-learned the hard way.
+Source for the whole pipeline is
+[verma7/health-sync](https://github.com/verma7/health-sync) (private), checked
+out at `Fable/health-sync` on the MacBook. Its README carries the data-quality
+rules learned the hard way. Secrets and derived health data are gitignored: the
+ingest token, the signed shortcuts that embed it, and the backfill/lap JSON.
 
 ### Data pipeline
 
