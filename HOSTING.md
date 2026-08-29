@@ -173,6 +173,17 @@ sync go through identical logic:
   recovery, with Pearson r, n and a real t-test p-value. Session efficiency is
   detrended against the athlete's last 20 sessions in that discipline and
   winsorised at ±4σ, so multi-year fitness drift cannot manufacture a result.
+- **Swim technique** — SWOLF (length time + strokes for that length) per swim.
+  Length COUNT comes from distance, never from lap markers: the Watch emits one
+  marker per length but MySwimPro emits its own interval markers. Per-length
+  TIME is used only when `lap_count == lengths`, otherwise SWOLF is withheld
+  with the reason recorded. `swolf_25` normalises to one 25 yd length because
+  SWOLF scales with the unit it is measured over (a lap-counting app reports
+  roughly double). Pool defaults to 22.86 m, overridden by `HKLapLength`.
+- **Running form** — power, stride length, ground contact, vertical oscillation.
+  Every sport statistic is bounded by a plausible range and retried at 1/100 and
+  1/1000 before being discarded, because the live exporter reports stride length
+  in centimetres while the XML backfill uses metres.
 
 ### Data pipeline
 
@@ -189,6 +200,13 @@ Two sources feed the same ingest endpoint:
 
 The dashboard shows a staleness banner when the newest day on record is more
 than two days old, so a silently dead automation is visible.
+
+Lap splits and workout statistics are **not** in the DuckDB export — the
+importer drops `<WorkoutEvent>`. `parse_export_laps.py` streams the 2.4 GB
+export.xml straight out of export.zip to recover them (16s for 5.17M records);
+`push_backfill.py --file laps.json` merges them in. Snap lap timestamps to the
+nearest existing session first: DuckDB and export.xml disagree by exactly one
+hour across DST boundaries.
 
 ```bash
 # refresh the backfill from a new export.zip
