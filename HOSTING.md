@@ -185,6 +185,19 @@ sync go through identical logic:
   1/1000 before being discarded, because the live exporter reports stride length
   in centimetres while the XML backfill uses metres.
 
+Two guards exist because the raw data lies in specific ways:
+
+- **Marker sets are validated against their own workout.** Cycling `segment`
+  events overlap — a 70-minute ride produced 31 markers totalling 209 minutes.
+  Splits exceeding the session duration are recorded as `laps_unusable` rather
+  than averaged into a meaningless split time.
+- **Pool length is only applied to swims.** It was previously stamped on every
+  workout, so bike rides carried `pool: 25 yd`.
+
+Source for the whole pipeline is a git repo at `Fable/health-sync` on the
+MacBook (local only, no remote). Its README carries the data-quality rules
+learned the hard way.
+
 ### Data pipeline
 
 Two sources feed the same ingest endpoint:
