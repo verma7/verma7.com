@@ -14,7 +14,7 @@
 		--accent: #0F5C7A; --accent-hi: #1a7ea6; --accent-soft: #0F5C7A14;
 		--rule: #e2e6e8; --grid: #edf0f1;
 		--neg: #B00020; --warn: #B05500; --good: #12795A;
-		--swim: #2a78d6; --bike: #C77A0A; --run: #C0392B; --other: #8a8f94;
+		--swim: #2a78d6; --bike: #C77A0A; --run: #C0392B; --climbing: #6C4FB8; --other: #8a8f94;
 		--deep: #2E3192; --rem: #7B4FC0; --core: #4A90D9; --awake: #C6CDD2;
 		--glow: none;
 		color-scheme: light;
@@ -25,7 +25,7 @@
 		--accent: #48B7E0; --accent-hi: #6ECBEE; --accent-soft: #48B7E01A;
 		--rule: #232A2D; --grid: #1C2225;
 		--neg: #E06C5A; --warn: #E0A458; --good: #3DD68C;
-		--swim: #4A9BF0; --bike: #E0A458; --run: #E8705C; --other: #7d868b;
+		--swim: #4A9BF0; --bike: #E0A458; --run: #E8705C; --climbing: #A88BE0; --other: #7d868b;
 		--deep: #6C6FE0; --rem: #A882E8; --core: #5FA8E8; --awake: #3A4348;
 		--glow: 0 0 24px #48B7E022;
 		color-scheme: dark;
@@ -101,6 +101,7 @@
 	.pill.swim { background: #2a78d622; color: var(--swim); }
 	.pill.bike { background: #C77A0A22; color: var(--bike); }
 	.pill.run  { background: #C0392B22; color: var(--run); }
+	.pill.climbing { background: #6C4FB822; color: var(--climbing); }
 	.pill.sig  { background: #12795A22; color: var(--good); }
 	.pill.nosig{ background: var(--raised); color: var(--ink-3); }
 
@@ -203,7 +204,8 @@ var shortDate = function (iso) {
 };
 var DISC = { swim: "Swim", bike: "Bike", run: "Run", walk: "Walk", hike: "Hike",
              row: "Row", strength: "Strength", hiit: "HIIT", mindbody: "Mind & body",
-             elliptical: "Elliptical", cardio: "Cardio", other: "Other" };
+             elliptical: "Elliptical", cardio: "Cardio", climbing: "Climbing",
+             other: "Other" };
 var cssVar = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
 
 // ------------------------------------------------------------ chart basics
@@ -531,7 +533,8 @@ function drawVolume(d) {
 	var w = d.weeks.filter(function (x) { return x.week >= (d.curves[0] ? d.curves[0].date : first); });
 	if (!w.length) { host.innerHTML = '<div class="empty">No sessions in this window.</div>'; return; }
 	if (w.length > 60) w = w.slice(w.length - 60);
-	var keys = ["swim", "bike", "run"], others = ["walk", "hike", "row", "strength", "hiit", "cardio", "elliptical", "mindbody", "other"];
+	var keys = ["swim", "bike", "run", "climbing"];
+	var others = ["walk", "hike", "row", "strength", "hiit", "cardio", "elliptical", "mindbody", "other"];
 	var f = frame(480, 200, { l: 30, r: 8, t: 10, b: 20 });
 	var tot = w.map(function (x) {
 		var t = 0; keys.forEach(function (k) { t += x[k] || 0; });
@@ -569,6 +572,7 @@ function drawVolume(d) {
 		'<div class="legend"><span><i style="background:var(--swim)"></i>swim</span>' +
 		'<span><i style="background:var(--bike)"></i>bike</span>' +
 		'<span><i style="background:var(--run)"></i>run</span>' +
+		'<span><i style="background:var(--climbing)"></i>climbing</span>' +
 		'<span><i style="background:var(--other);opacity:.5"></i>other</span></div>');
 }
 
@@ -576,9 +580,14 @@ function drawVolume(d) {
 function drawBalance(d) {
 	var host = $("#balChart");
 	var mins = { swim: 0, bike: 0, run: 0 }, other = 0, n = { swim: 0, bike: 0, run: 0 };
+	var otherMins = {}, otherN = {};
 	d.workouts.forEach(function (w) {
 		if (mins[w.type] !== undefined) { mins[w.type] += w.duration_min; n[w.type]++; }
-		else other += w.duration_min;
+		else {
+			other += w.duration_min;
+			otherMins[w.type] = (otherMins[w.type] || 0) + w.duration_min;
+			otherN[w.type] = (otherN[w.type] || 0) + 1;
+		}
 	});
 	var tri = mins.swim + mins.bike + mins.run;
 	if (!tri) { host.innerHTML = '<div class="empty">No swim, bike or run sessions in this window.</div>'; return; }
@@ -599,9 +608,22 @@ function drawBalance(d) {
 			missing.map(function (m) { return DISC[m].toLowerCase(); }).join(" and ") +
 			'</b> missing entirely from this window — the balance above is only across what you actually recorded.</div>';
 	}
-	if (other > 0) {
-		html += '<p class="sub" style="margin-top:8px">Plus ' + hm(other / 60) +
-			' of non-triathlon training (walks, hikes, strength).</p>';
+	// The tri share above is deliberately swim/bike/run only — that is the
+	// metric. Everything else is itemised rather than lumped into "other", so a
+	// discipline you actually train (climbing) is visible instead of hidden.
+	var cross = Object.keys(otherMins).sort(function (a, b) { return otherMins[b] - otherMins[a]; });
+	if (cross.length) {
+		html += '<div style="margin-top:14px;border-top:1px solid var(--rule);padding-top:10px">' +
+			'<div class="sub" style="margin-bottom:6px">Cross-training — outside the triathlon three</div>';
+		cross.forEach(function (k) {
+			var pct = other ? otherMins[k] / other * 100 : 0;
+			html += '<div style="display:flex;justify-content:space-between;font-size:.82rem;' +
+				'padding:2px 0"><span><b>' + (DISC[k] || k) + '</b> <span class="sub">' +
+				otherN[k] + ' session' + (otherN[k] === 1 ? '' : 's') + '</span></span>' +
+				'<span style="font-variant-numeric:tabular-nums">' + hm(otherMins[k] / 60) +
+				' · ' + fmt(pct, 0) + '%</span></div>';
+		});
+		html += '</div>';
 	}
 	host.innerHTML = html;
 }
