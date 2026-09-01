@@ -353,9 +353,10 @@ function render(d) {
 
 	if (d.swim_technique && d.swim_technique.length) {
 		app.appendChild(panel("Swim technique",
-			"SWOLF is one length's time plus the strokes it took. Unlike pace it ignores " +
-			"how long you rest at the wall, so it tracks technique rather than fitness — " +
-			"lower is better.", "swimChart"));
+			"Two views of efficiency, both lower-is-better. SWOLF is one length's time " +
+			"plus the strokes it took — mechanical cost, which ignores rest at the wall. " +
+			"Beats per length is what that length cost your heart, which SWOLF cannot see.",
+			"swimChart"));
 	}
 	if (d.run_form && d.run_form.length) {
 		app.appendChild(panel("Running form", "The mechanics behind a pace. Measured by the " +
@@ -816,6 +817,44 @@ function drawSwim(d) {
 		[document.createTextNode(rows.length + " swims, oldest first \u2192")]));
 	host.appendChild(f.svg);
 
+	// Beats per length on its own chart rather than a second axis: it shares the
+	// x axis but not the units, and overlaying them invites reading one as the
+	// other. Only swims with a measured heart rate appear here.
+	var bp = rows.filter(function (r) { return r.beats_per_length; });
+	var bestBeats = null;
+	if (bp.length >= 3) {
+		var bv = bp.map(function (r) { return r.beats_per_length; });
+		var bsort = bv.slice().sort(function (a, b) { return a - b; });
+		bestBeats = { min: bsort[0], median: bsort[Math.floor(bsort.length / 2)] };
+		var g = frame(1000, 150, { l: 36, r: 10, t: 22, b: 26 });
+		var blo = Math.min.apply(null, bv) - 5, bhi = Math.max.apply(null, bv) + 5;
+		var yb = yScale(g, blo, bhi);
+		gridY(g, yb, blo, bhi, 3);
+		g.svg.appendChild(el("text", { x: g.p.l, y: 12, "text-anchor": "start",
+			fill: cssVar("--ink-2") }, [document.createTextNode("Beats per length \u2014 heart cost")]));
+		g.svg.appendChild(el("path", { d: linePath(g, bv, yb), fill: "none",
+			stroke: cssVar("--run"), "stroke-width": 1.6 }));
+		bp.forEach(function (r, i) {
+			var x = g.p.l + (bp.length === 1 ? g.iw / 2 : i / (bp.length - 1) * g.iw);
+			g.svg.appendChild(el("circle", { cx: x, cy: yb(r.beats_per_length), r: 2.6,
+				fill: r.beats_per_length === bestBeats.min ? cssVar("--good") : cssVar("--run"),
+				opacity: r.beats_per_length === bestBeats.min ? 1 : .65 }));
+		});
+		g.svg.appendChild(el("line", { x1: g.p.l, x2: g.W - g.p.r,
+			y1: yb(bestBeats.min), y2: yb(bestBeats.min), stroke: cssVar("--good"),
+			"stroke-width": 1, "stroke-dasharray": "5 4", opacity: .9 }));
+		g.svg.appendChild(el("text", { x: g.W - g.p.r, y: yb(bestBeats.min) - 5,
+			"text-anchor": "end", fill: cssVar("--good") },
+			[document.createTextNode("best " + fmt(bestBeats.min, 0))]));
+		hoverBands(g, bp.length, function (i) {
+			var r = bp[i];
+			return shortDate(r.date) + "\n" + fmt(r.beats_per_length, 1) + " beats per length" +
+				"\nHR " + fmt(r.avg_hr, 0) + " over " + fmt(r.lap_avg_sec, 1) + "s lengths";
+		});
+		xLabels(g, bp.map(function (r) { return r.date; }), Math.max(1, Math.floor(bp.length / 6)));
+		host.appendChild(g.svg);
+	}
+
 	var sorted = vals.slice().sort(function (a, b) { return a - b; });
 	var median = sorted[Math.floor(sorted.length / 2)];
 	var betterThan = vals.filter(function (v) { return v > latest.v; }).length;
@@ -826,12 +865,17 @@ function drawSwim(d) {
 		stat(fmt(median, 1), "Median", rows.length + " swims") +
 		stat(fmt(latest.strokes_per_length, 1), "Strokes / length",
 			"best " + fmt(best.strokes_per_length, 1)) +
+		(latest.beats_per_length ? stat(fmt(latest.beats_per_length, 0), "Beats / length",
+			"heart cost of one length",
+			bestBeats && latest.beats_per_length <= bestBeats.median ? "good" : "warn") : "") +
 		'</div>' +
 		'<p class="sub" style="margin-top:8px">The latest swim beats ' + betterThan + ' of ' +
-		(rows.length - 1) + ' previous sessions. All values are normalised to one 25 yd ' +
-		'length, since SWOLF scales with the unit it is measured over. Pace and efficiency ' +
-		'factor are deliberately not shown for swims — a rest-heavy pool set makes ' +
-		'elapsed-time pace meaningless.</p>');
+		(rows.length - 1) + ' previous sessions on SWOLF. The two charts can disagree: ' +
+		'swimming slower raises SWOLF while lowering the heart cost, so a session that ' +
+		'looks marginally worse mechanically can be markedly cheaper physiologically. ' +
+		'SWOLF is normalised to one 25 yd length, since it scales with the unit it is ' +
+		'measured over. Pace and efficiency factor are deliberately not shown for swims — ' +
+		'a rest-heavy pool set makes elapsed-time pace meaningless.</p>');
 }
 
 // -------------------------------------------------------------- running form
